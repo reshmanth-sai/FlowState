@@ -62,10 +62,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
     <div className="product-container">
       {/* Intro Editorial */}
       <div style={{ marginBottom: '2.5rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.03em', color: '#f9fafb' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--text-main)' }}>
           Understand your focus. Adapt your workspace.
         </h1>
-        <p style={{ fontSize: '0.95rem', color: '#9ca3af', marginTop: '0.4rem', maxWidth: '640px' }}>
+        <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginTop: '0.4rem', maxWidth: '640px' }}>
           Flowstate observes typing cadence and task interaction patterns to estimate workload and
           fatigue—adapting your environment without invading your privacy.
         </p>
@@ -83,40 +83,40 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     width: '7px',
                     height: '7px',
                     borderRadius: '50%',
-                    background: activeSession ? '#10b981' : '#6b7280',
+                    background: activeSession ? '#10b981' : 'var(--text-muted)',
                     display: 'inline-block',
                     boxShadow: activeSession ? '0 0 8px rgba(16, 185, 129, 0.4)' : 'none',
                   }}
                 />
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {activeSession ? 'Current Session' : 'No Active Session'}
                 </span>
               </div>
-              <span style={{ fontSize: '0.8rem', color: '#6b7280', fontFamily: 'var(--font-mono)' }}>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 {activeSession ? `${durationMinutes || 18}m active` : 'Idle'}
               </span>
             </div>
 
             {activeSession ? (
               <div>
-                <div style={{ fontSize: '1.45rem', fontWeight: 700, color: '#f3f4f6', letterSpacing: '-0.02em' }}>
+                <div style={{ fontSize: '1.45rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
                   Two Sum
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>LeetCode</span>
-                  <span style={{ color: '#374151' }}>•</span>
+                  <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
                   <span>Easy</span>
-                  <span style={{ color: '#374151' }}>•</span>
+                  <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
                   <span style={{ color: '#10b981' }}>Python</span>
                 </div>
 
                 {/* Cohesive State Composition */}
                 <div style={{ marginTop: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                   <div>
-                    <div style={{ fontSize: '0.72rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       Workload
                     </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#e5e7eb', marginTop: '2px' }}>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>
                       {workload.label}
                     </div>
                     <div className="calm-progress-track">
@@ -125,10 +125,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '0.72rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       Fatigue
                     </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#e5e7eb', marginTop: '2px' }}>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>
                       {fatigue.label}
                     </div>
                     <div className="calm-progress-track">
@@ -137,10 +137,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '0.72rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       Engagement
                     </div>
-                    <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#e5e7eb', marginTop: '2px' }}>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-main)', marginTop: '2px' }}>
                       {engagement.label}
                     </div>
                     <div className="calm-progress-track">
@@ -151,71 +151,55 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             ) : (
               <div style={{ padding: '1.5rem 0', textAlign: 'center' }}>
-                <p style={{ color: '#9ca3af', fontSize: '0.9rem' }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
                   Start a Flowstate session or browse LeetCode with the Chrome Extension to begin observing interaction patterns.
                 </p>
               </div>
             )}
           </div>
 
-          <div style={{ marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid #161924', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-              Estimate quality: <strong style={{ color: '#10b981' }}>● Good</strong>
+          <div style={{ marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              Confidence: <strong style={{ color: 'var(--text-main)' }}>82% (Good)</strong> • Behavioral Proxy
             </div>
-            {activeSession ? (
-              <button
-                onClick={onContinueSession}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  background: '#6366f1',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <span>Continue Session</span>
-                <ArrowRight size={14} />
-              </button>
-            ) : (
-              <button
-                onClick={onStartNewSession}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  background: '#6366f1',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '0.85rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                <span>Start Session</span>
-                <ArrowRight size={14} />
-              </button>
-            )}
+            <button
+              onClick={onContinueSession}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '7px 16px',
+                background: 'var(--laser-violet)',
+                color: '#ffffff',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <span>Open Live Session</span>
+              <ArrowRight size={14} />
+            </button>
           </div>
         </div>
 
-        {/* Recent Sessions Overview */}
+        {/* Recent Sessions List */}
         <div className="calm-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Recent Sessions
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Recent Focus Blocks
+              </h3>
               <button
                 onClick={onViewHistory}
-                style={{ background: 'transparent', border: 'none', color: '#6366f1', fontSize: '0.75rem', cursor: 'pointer' }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--laser-violet)',
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                }}
               >
                 View all →
               </button>
@@ -227,8 +211,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 onClick={onContinueSession}
                 style={{
                   padding: '0.75rem 0.85rem',
-                  background: '#0f1118',
-                  border: '1px solid #181b26',
+                  background: 'var(--bay-elevated)',
+                  border: '1px solid var(--border-hairline)',
                   borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
@@ -237,15 +221,15 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f3f4f6' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
                     Two Sum
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                     LeetCode • Today
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#9ca3af', fontFamily: 'var(--font-mono)' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                     {durationMinutes || 18}m
                   </div>
                   <div style={{ fontSize: '0.7rem', color: '#10b981' }}>
@@ -259,8 +243,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 onClick={onViewHistory}
                 style={{
                   padding: '0.75rem 0.85rem',
-                  background: '#0f1118',
-                  border: '1px solid #181b26',
+                  background: 'var(--bay-elevated)',
+                  border: '1px solid var(--border-hairline)',
                   borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
@@ -269,18 +253,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f3f4f6' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
                     FastAPI Engine Refactor
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                     GitHub / Code • Today
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#9ca3af', fontFamily: 'var(--font-mono)' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                     47m
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: '#6366f1' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--laser-violet)' }}>
                     Focus mode
                   </div>
                 </div>
@@ -291,8 +275,8 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 onClick={onViewHistory}
                 style={{
                   padding: '0.75rem 0.85rem',
-                  background: '#0f1118',
-                  border: '1px solid #181b26',
+                  background: 'var(--bay-elevated)',
+                  border: '1px solid var(--border-hairline)',
                   borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
@@ -301,18 +285,18 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 }}
               >
                 <div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#f3f4f6' }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
                     Binary Search Trees
                   </div>
-                  <div style={{ fontSize: '0.72rem', color: '#6b7280' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                     LeetCode • Yesterday
                   </div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#9ca3af', fontFamily: 'var(--font-mono)' }}>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                     32m
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>
                     Completed
                   </div>
                 </div>
@@ -320,16 +304,16 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
           </div>
 
-          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #161924', display: 'flex', gap: '1rem' }}>
+          <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-hairline)', display: 'flex', gap: '1rem' }}>
             <button
               onClick={onViewSignals}
               style={{
                 flex: 1,
                 padding: '6px 12px',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid #1e2230',
+                background: 'var(--bay-elevated)',
+                border: '1px solid var(--border-hairline)',
                 borderRadius: '5px',
-                color: '#9ca3af',
+                color: 'var(--text-secondary)',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
               }}
@@ -341,10 +325,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
               style={{
                 flex: 1,
                 padding: '6px 12px',
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid #1e2230',
+                background: 'var(--bay-elevated)',
+                border: '1px solid var(--border-hairline)',
                 borderRadius: '5px',
-                color: '#9ca3af',
+                color: 'var(--text-secondary)',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
               }}
@@ -359,7 +343,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       <div className="calm-panel">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '1rem' }}>
           <ShieldCheck size={18} style={{ color: '#10b981' }} />
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#f3f4f6' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-main)' }}>
             Private by Design — What Flowstate Observes
           </h3>
         </div>
@@ -369,7 +353,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
               What Flowstate Observes
             </div>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: '#d1d5db' }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Check size={14} style={{ color: '#10b981', flexShrink: 0 }} />
                 <span>Interaction timing & inter-keystroke intervals (ms)</span>
@@ -393,7 +377,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.65rem' }}>
               What Flowstate Never Collects
             </div>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: '#9ca3af' }}>
+            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <X size={14} style={{ color: '#ef4444', flexShrink: 0 }} />
                 <span>Source code, page contents, or problem solution text</span>
@@ -414,7 +398,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
 
-        <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #161924', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: '#6b7280' }}>
+        <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid var(--border-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Database size={13} />
             <span>Authoritative Local SQLite Storage — zero cloud sync lock-in</span>

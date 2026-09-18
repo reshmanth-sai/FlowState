@@ -11,6 +11,8 @@ import {
   Settings,
   X,
   ExternalLink,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -18,6 +20,8 @@ interface CommandPaletteProps {
   onClose: () => void;
   onNavigate: (view: string) => void;
   onToggleFocus: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const CommandPalette: React.FC<CommandPaletteProps> = ({
@@ -25,6 +29,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
   onClose,
   onNavigate,
   onToggleFocus,
+  theme = 'dark',
+  onToggleTheme,
 }) => {
   const [query, setQuery] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +67,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     { id: 'evidence', label: 'Inspect Evidence Trace', desc: '7-stage pipeline verification and cryptographic hash', icon: ShieldCheck, action: () => { onNavigate('evidence'); onClose(); } },
     { id: 'evaluation', label: 'Evaluation Lab', desc: 'Controlled benchmarks & diff matrix for reviewers', icon: FlaskConical, action: () => { onNavigate('evaluation'); onClose(); } },
     { id: 'focus', label: 'Toggle Focus Mode', desc: 'Switch to distraction-free ambient workspace', icon: Eye, action: () => { onToggleFocus(); onClose(); } },
+    ...(onToggleTheme ? [{
+      id: 'theme',
+      label: `Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`,
+      desc: `Toggle application visual theme to ${theme === 'dark' ? 'light alabaster' : 'dark obsidian'}`,
+      icon: theme === 'dark' ? Sun : Moon,
+      action: () => { onToggleTheme(); onClose(); }
+    }] : []),
     { id: 'settings', label: 'Settings & Privacy', desc: 'Signal sources, local storage & parameters', icon: Settings, action: () => { onNavigate('settings'); onClose(); } },
     { id: 'platform', label: 'Product Website', desc: 'Public platform homepage & pricing', icon: ExternalLink, action: () => { onNavigate('platform'); onClose(); } },
   ];
@@ -74,8 +87,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     <div className="command-palette-backdrop" onClick={onClose}>
       <div className="command-palette-box" onClick={(e) => e.stopPropagation()}>
         {/* Search Bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderBottom: '1px solid #1c1f2b' }}>
-          <Search size={16} style={{ color: '#6b7280' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', borderBottom: '1px solid var(--border-hairline)' }}>
+          <Search size={16} style={{ color: 'var(--text-muted)' }} />
           <input
             ref={inputRef}
             type="text"
@@ -87,11 +100,11 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               background: 'transparent',
               border: 'none',
               outline: 'none',
-              color: '#f3f4f6',
+              color: 'var(--text-main)',
               fontSize: '0.9rem',
             }}
           />
-          <kbd style={{ fontSize: '10px', background: '#161823', padding: '2px 6px', borderRadius: '4px', color: '#6b7280', fontFamily: 'var(--font-mono)' }}>
+          <kbd style={{ fontSize: '10px', background: 'var(--bay-hover)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
             ESC
           </kbd>
         </div>
@@ -109,20 +122,26 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
-                    padding: '10px 12px',
+                    padding: '9px 12px',
                     borderRadius: '6px',
                     cursor: 'pointer',
-                    transition: 'background 0.1s ease',
+                    transition: 'all 0.12s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--bay-hover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
                 >
-                  <Icon size={16} style={{ color: '#6366f1', flexShrink: 0 }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 500, color: '#f3f4f6' }}>
+                  <div style={{ color: 'var(--laser-violet)', display: 'flex', alignItems: 'center' }}>
+                    <Icon size={16} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
                       {cmd.label}
                     </div>
-                    <div style={{ fontSize: '0.72rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
                       {cmd.desc}
                     </div>
                   </div>
@@ -130,8 +149,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               );
             })
           ) : (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280', fontSize: '0.82rem' }}>
-              No commands matching "{query}"
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+              No commands found for "{query}"
             </div>
           )}
         </div>

@@ -43,6 +43,24 @@ export const App: React.FC = () => {
   const [focusMode, setFocusMode] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
 
+  // Theme state: persisted in localStorage with system preference fallback
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('flowstate_theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
+      ? 'light'
+      : 'dark';
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('flowstate_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
   // URL Hash synchronization
   useEffect(() => {
     const handleHash = () => {
@@ -186,7 +204,7 @@ export const App: React.FC = () => {
       />
 
       {/* 2. Main Viewport */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: '100vh', background: '#08090d' }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--canvas-bg)' }}>
         {/* Calm App Header */}
         <AppHeader
           activeSession={activeSession}
@@ -195,6 +213,8 @@ export const App: React.FC = () => {
           onToggleFocus={() => setFocusMode(!focusMode)}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           mode={mode}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Scrollable View Area */}
@@ -268,7 +288,12 @@ export const App: React.FC = () => {
           )}
 
           {/* SETTINGS & PRIVACY VIEW */}
-          {currentView === 'settings' && <SettingsView />}
+          {currentView === 'settings' && (
+            <SettingsView
+              theme={theme}
+              onSetTheme={(t) => setTheme(t)}
+            />
+          )}
 
           {/* ADVANCED: 7-STAGE EVIDENCE TRACE */}
           {currentView === 'evidence' && (
@@ -397,6 +422,8 @@ export const App: React.FC = () => {
         onClose={() => setCommandPaletteOpen(false)}
         onNavigate={(view) => navigateTo(view as ProductView)}
         onToggleFocus={() => setFocusMode(!focusMode)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
     </div>
   );

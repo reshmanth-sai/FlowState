@@ -66,15 +66,15 @@ export const SignalsView: React.FC<SignalsViewProps> = ({
           </div>
 
           {/* Sub-tabs */}
-          <div style={{ display: 'flex', background: '#0e1017', border: '1px solid #1a1d28', borderRadius: '6px', padding: '2px' }}>
+          <div style={{ display: 'flex', background: 'var(--bay-elevated)', border: '1px solid var(--border-hairline)', borderRadius: '6px', padding: '2px' }}>
             <button
               onClick={() => setActiveTab('oscilloscope')}
               style={{
                 padding: '5px 12px',
-                background: activeTab === 'oscilloscope' ? '#181b26' : 'transparent',
+                background: activeTab === 'oscilloscope' ? 'var(--bay-hover)' : 'transparent',
                 border: 'none',
                 borderRadius: '4px',
-                color: activeTab === 'oscilloscope' ? '#ffffff' : '#9ca3af',
+                color: activeTab === 'oscilloscope' ? 'var(--text-main)' : 'var(--text-secondary)',
                 fontSize: '0.78rem',
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -86,10 +86,10 @@ export const SignalsView: React.FC<SignalsViewProps> = ({
               onClick={() => setActiveTab('cadence')}
               style={{
                 padding: '5px 12px',
-                background: activeTab === 'cadence' ? '#181b26' : 'transparent',
+                background: activeTab === 'cadence' ? 'var(--bay-hover)' : 'transparent',
                 border: 'none',
                 borderRadius: '4px',
-                color: activeTab === 'cadence' ? '#ffffff' : '#9ca3af',
+                color: activeTab === 'cadence' ? 'var(--text-main)' : 'var(--text-secondary)',
                 fontSize: '0.78rem',
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -101,10 +101,10 @@ export const SignalsView: React.FC<SignalsViewProps> = ({
               onClick={() => setActiveTab('sources')}
               style={{
                 padding: '5px 12px',
-                background: activeTab === 'sources' ? '#181b26' : 'transparent',
+                background: activeTab === 'sources' ? 'var(--bay-hover)' : 'transparent',
                 border: 'none',
                 borderRadius: '4px',
-                color: activeTab === 'sources' ? '#ffffff' : '#9ca3af',
+                color: activeTab === 'sources' ? 'var(--text-main)' : 'var(--text-secondary)',
                 fontSize: '0.78rem',
                 fontWeight: 500,
                 cursor: 'pointer',
@@ -137,47 +137,47 @@ export const SignalsView: React.FC<SignalsViewProps> = ({
         {activeTab === 'cadence' && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginTop: '1rem' }}>
             <div className="calm-panel">
-              <div style={{ fontSize: '0.72rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Typing Latency Median
               </div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f3f4f6', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
-                {Math.round(typingMedian)} <span style={{ fontSize: '0.85rem', fontWeight: 400, color: '#9ca3af' }}>ms</span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-main)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+                {Math.round(typingMedian)} <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-secondary)' }}>ms</span>
               </div>
-              <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '6px' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
                 Median inter-keystroke duration. Stable baseline indicates relaxed rhythm.
               </p>
             </div>
 
             <div className="calm-panel">
-              <div style={{ fontSize: '0.72rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Cadence Burstiness
               </div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#6366f1', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+              <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--laser-violet)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
                 {burstiness.toFixed(2)}
               </div>
-              <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '6px' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
                 Ratio of rapid typing bursts to sustained pauses.
               </p>
             </div>
 
             <div className="calm-panel">
-              <div style={{ fontSize: '0.72rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Pause Ratio
               </div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#10b981', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
-                {(pauseRatio * 100).toFixed(0)} <span style={{ fontSize: '0.85rem', fontWeight: 400, color: '#9ca3af' }}>%</span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--phosphor-jade)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+                {(pauseRatio * 100).toFixed(0)} <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-secondary)' }}>%</span>
               </div>
-              <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '6px' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
                 Fraction of observation window spent in cognitive reflection pauses (&gt;1.5s).
               </p>
             </div>
 
             <div className="calm-panel">
-              <div style={{ fontSize: '0.72rem', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Editing Backspace Rate
               </div>
-              <div style={{ fontSize: '1.6rem', fontWeight: 700, color: '#f59e0b', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
-                {(errorRate * 100).toFixed(1)} <span style={{ fontSize: '0.85rem', fontWeight: 400, color: '#9ca3af' }}>%</span>
+              <div style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--amber-alert)', fontFamily: 'var(--font-mono)', marginTop: '4px' }}>
+                {(errorRate * 100).toFixed(1)} <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-secondary)' }}>%</span>
               </div>
               <p style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '6px' }}>
                 Correction cadence frequency indicating cognitive friction or code refactoring.

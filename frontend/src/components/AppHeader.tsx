@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Command } from 'lucide-react';
+import { Eye, Command, Sun, Moon } from 'lucide-react';
 import { Session } from '../api';
 
 interface AppHeaderProps {
@@ -10,6 +10,8 @@ interface AppHeaderProps {
   onOpenCommandPalette: () => void;
   mode: 'DEMO' | 'LIVE';
   onToggleMode?: () => void;
+  theme?: 'light' | 'dark';
+  onToggleTheme?: () => void;
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
@@ -18,6 +20,8 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   focusMode,
   onToggleFocus,
   onOpenCommandPalette,
+  theme = 'dark',
+  onToggleTheme,
 }) => {
   // Contextual greeting
   const getGreeting = () => {
@@ -30,14 +34,14 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   return (
     <header className="product-header">
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#f3f4f6' }}>
+        <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-main)' }}>
           {getGreeting()}
         </span>
-        <span style={{ color: '#374151' }}>/</span>
-        <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>
+        <span style={{ color: 'var(--border-hairline-bright)' }}>/</span>
+        <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
           {activeSession ? (
             <span>
-              Working on <strong style={{ color: '#e5e7eb' }}>Two Sum</strong> (LeetCode)
+              Working on <strong style={{ color: 'var(--text-main)' }}>Two Sum</strong> (LeetCode)
             </span>
           ) : (
             'Workspace ready'
@@ -45,7 +49,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         {/* Command Palette Trigger */}
         <button
           onClick={onOpenCommandPalette}
@@ -54,10 +58,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             alignItems: 'center',
             gap: '6px',
             padding: '4px 10px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid #1f2230',
+            background: 'var(--bay-elevated)',
+            border: '1px solid var(--border-hairline)',
             borderRadius: '5px',
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             fontSize: '0.75rem',
             cursor: 'pointer',
           }}
@@ -68,16 +72,40 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
           <kbd
             style={{
               padding: '1px 4px',
-              background: '#161922',
+              background: 'var(--bay-hover)',
               borderRadius: '3px',
               fontSize: '10px',
               fontFamily: 'var(--font-mono)',
-              color: '#6b7280',
+              color: 'var(--text-muted)',
             }}
           >
             ⌘K
           </kbd>
         </button>
+
+        {/* Theme Toggle (Light / Dark) */}
+        {onToggleTheme && (
+          <button
+            onClick={onToggleTheme}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              background: 'var(--bay-elevated)',
+              border: '1px solid var(--border-hairline)',
+              borderRadius: '5px',
+              color: 'var(--text-secondary)',
+              fontSize: '0.75rem',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+          >
+            {theme === 'dark' ? <Sun size={13} style={{ color: '#f59e0b' }} /> : <Moon size={13} style={{ color: '#6366f1' }} />}
+            <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+          </button>
+        )}
 
         {/* Focus Mode Toggle */}
         <button
@@ -87,10 +115,10 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             alignItems: 'center',
             gap: '6px',
             padding: '4px 10px',
-            background: focusMode ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-            border: `1px solid ${focusMode ? 'rgba(99, 102, 241, 0.4)' : '#1f2230'}`,
+            background: focusMode ? 'rgba(99, 102, 241, 0.15)' : 'var(--bay-elevated)',
+            border: `1px solid ${focusMode ? 'rgba(99, 102, 241, 0.4)' : 'var(--border-hairline)'}`,
             borderRadius: '5px',
-            color: focusMode ? '#a5b4fc' : '#9ca3af',
+            color: focusMode ? 'var(--laser-violet)' : 'var(--text-secondary)',
             fontSize: '0.75rem',
             cursor: 'pointer',
           }}
@@ -108,9 +136,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               alignItems: 'center',
               gap: '6px',
               fontSize: '0.78rem',
-              color: '#9ca3af',
+              color: 'var(--text-secondary)',
               paddingLeft: '0.5rem',
-              borderLeft: '1px solid #1e2230',
+              borderLeft: '1px solid var(--border-hairline)',
             }}
           >
             <span
@@ -122,7 +150,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
                 boxShadow: '0 0 6px rgba(16, 185, 129, 0.4)',
               }}
             />
-            <span style={{ color: '#d1d5db' }}>
+            <span style={{ color: 'var(--text-main)' }}>
               {durationMinutes > 0 ? `${durationMinutes}m active` : 'Active'}
             </span>
           </div>

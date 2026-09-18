@@ -47,10 +47,10 @@ export const FocusModeOverlay: React.FC<FocusModeOverlayProps> = ({
         </div>
 
         <div>
-          <div style={{ fontSize: '2.5rem', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.03em' }}>
+          <div style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.03em' }}>
             {taskTitle || 'Two Sum'}
           </div>
-          <div style={{ fontSize: '0.9rem', color: '#9ca3af', marginTop: '4px' }}>
+          <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
             LeetCode • {durationMinutes || 18}m in flow
           </div>
         </div>
@@ -61,18 +61,18 @@ export const FocusModeOverlay: React.FC<FocusModeOverlayProps> = ({
             alignItems: 'center',
             gap: '1rem',
             padding: '0.85rem 1.5rem',
-            background: '#0d0f16',
-            border: '1px solid #1a1d28',
+            background: 'var(--bay-elevated)',
+            border: '1px solid var(--border-hairline)',
             borderRadius: '8px',
             fontSize: '0.85rem',
-            color: '#e5e7eb',
+            color: 'var(--text-main)',
           }}
         >
           <span>Moderate Workload</span>
-          <span style={{ color: '#374151' }}>•</span>
+          <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
           <span>Low Fatigue</span>
-          <span style={{ color: '#374151' }}>•</span>
-          <span style={{ color: '#10b981' }}>High Engagement</span>
+          <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
+          <span style={{ color: 'var(--phosphor-jade)' }}>High Engagement</span>
         </div>
 
         <button
@@ -82,10 +82,10 @@ export const FocusModeOverlay: React.FC<FocusModeOverlayProps> = ({
             alignItems: 'center',
             gap: '6px',
             padding: '8px 16px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid #232738',
+            background: 'var(--bay-elevated)',
+            border: '1px solid var(--border-hairline)',
             borderRadius: '6px',
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             fontSize: '0.8rem',
             cursor: 'pointer',
             marginTop: '1.5rem',

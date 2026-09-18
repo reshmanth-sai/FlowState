@@ -106,7 +106,7 @@ export const DocsPage: React.FC<Props> = ({ onLaunchConsole, onNavigate }) => {
               </p>
 
               <h4 style={{ fontSize: '13px', marginBottom: '0.5rem' }}>1. Start Backend Daemon</h4>
-              <div style={{ background: '#050608', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ background: 'var(--bay-elevated)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <code className="mono" style={{ fontSize: '11.5px', color: 'var(--cyan-telemetry)' }}>
                   source .venv/bin/activate && uvicorn backend.main:app --host 127.0.0.1 --port 8000
                 </code>
@@ -116,7 +116,7 @@ export const DocsPage: React.FC<Props> = ({ onLaunchConsole, onNavigate }) => {
               </div>
 
               <h4 style={{ fontSize: '13px', marginBottom: '0.5rem' }}>2. Launch Frontend Dev Server</h4>
-              <div style={{ background: '#050608', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ background: 'var(--bay-elevated)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.75rem 1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <code className="mono" style={{ fontSize: '11.5px', color: 'var(--cyan-telemetry)' }}>
                   npm --prefix frontend run dev
                 </code>
@@ -209,7 +209,7 @@ export const DocsPage: React.FC<Props> = ({ onLaunchConsole, onNavigate }) => {
               </h2>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ background: '#050608', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.85rem' }}>
+                <div style={{ background: 'var(--bay-elevated)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.85rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                     <span className="tag tag-pass" style={{ fontSize: '9px' }}>GET</span>
                     <code className="mono" style={{ fontSize: '12px', color: 'var(--text-main)' }}>/sessions?limit=50</code>
@@ -219,7 +219,7 @@ export const DocsPage: React.FC<Props> = ({ onLaunchConsole, onNavigate }) => {
                   </p>
                 </div>
 
-                <div style={{ background: '#050608', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.85rem' }}>
+                <div style={{ background: 'var(--bay-elevated)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.85rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                     <span className="tag tag-pass" style={{ fontSize: '9px' }}>GET</span>
                     <code className="mono" style={{ fontSize: '12px', color: 'var(--text-main)' }}>/sessions/{'{session_id}'}/timeline</code>
@@ -229,7 +229,7 @@ export const DocsPage: React.FC<Props> = ({ onLaunchConsole, onNavigate }) => {
                   </p>
                 </div>
 
-                <div style={{ background: '#050608', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.85rem' }}>
+                <div style={{ background: 'var(--bay-elevated)', border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-micro)', padding: '0.85rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
                     <span className="tag tag-violet" style={{ fontSize: '9px' }}>POST</span>
                     <code className="mono" style={{ fontSize: '12px', color: 'var(--text-main)' }}>/evaluation/run/{'{scenario_id}'}</code>

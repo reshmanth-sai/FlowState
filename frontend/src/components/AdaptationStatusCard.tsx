@@ -72,12 +72,12 @@ export const AdaptationStatusCard: React.FC<AdaptationStatusCardProps> = ({
           }}
         >
           <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f59e0b' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--amber-alert)' }}>
               {latestDecision.action === 'PACING_ADJUSTMENT'
                 ? 'Pacing Adjustment Active'
                 : 'Focus Mode Active'}
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#d1d5db', marginTop: '2px' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
               Interaction cadence and sustained duration indicated elevated fatigue. Interface visual
               density conservatively reduced.
             </p>
@@ -94,10 +94,10 @@ export const AdaptationStatusCard: React.FC<AdaptationStatusCardProps> = ({
                 alignItems: 'center',
                 gap: '5px',
                 padding: '6px 12px',
-                background: '#1a1d27',
-                border: '1px solid #282d3d',
+                background: 'var(--bay-elevated)',
+                border: '1px solid var(--border-hairline)',
                 borderRadius: '5px',
-                color: '#e5e7eb',
+                color: 'var(--text-main)',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
               }}
@@ -110,7 +110,7 @@ export const AdaptationStatusCard: React.FC<AdaptationStatusCardProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#6366f1',
+                color: 'var(--laser-violet)',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
                 textDecoration: 'underline',
@@ -124,8 +124,8 @@ export const AdaptationStatusCard: React.FC<AdaptationStatusCardProps> = ({
         <div
           style={{
             padding: '1rem',
-            background: '#0e1017',
-            border: '1px solid #181b26',
+            background: 'var(--bay-elevated)',
+            border: '1px solid var(--border-hairline)',
             borderRadius: '6px',
             display: 'flex',
             alignItems: 'center',
@@ -133,10 +133,10 @@ export const AdaptationStatusCard: React.FC<AdaptationStatusCardProps> = ({
           }}
         >
           <div>
-            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f3f4f6' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
               Workspace Unchanged
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#9ca3af', marginTop: '2px' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
               Current behavioral signals do not indicate a need for adaptation. Flowstate leaves your
               workspace completely undisturbed.
             </p>
@@ -147,7 +147,7 @@ export const AdaptationStatusCard: React.FC<AdaptationStatusCardProps> = ({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#6366f1',
+              color: 'var(--laser-violet)',
               fontSize: '0.78rem',
               cursor: 'pointer',
               display: 'flex',

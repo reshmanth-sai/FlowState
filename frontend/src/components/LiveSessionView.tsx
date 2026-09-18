@@ -117,19 +117,19 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
       <div className="calm-panel" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Current Task Context
             </div>
-            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#f9fafb', letterSpacing: '-0.02em', marginTop: '2px' }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em', marginTop: '2px' }}>
               Two Sum
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: '#9ca3af', marginTop: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
               <span>LeetCode</span>
-              <span style={{ color: '#374151' }}>•</span>
+              <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
               <span>Easy Difficulty</span>
-              <span style={{ color: '#374151' }}>•</span>
+              <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
               <span style={{ color: '#10b981' }}>Python</span>
-              <span style={{ color: '#374151' }}>•</span>
+              <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
               <span>{durationMinutes || 18}m active</span>
             </div>
           </div>
@@ -142,10 +142,10 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
                 alignItems: 'center',
                 gap: '6px',
                 padding: '6px 12px',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid #1e2230',
+                background: 'var(--bay-elevated)',
+                border: '1px solid var(--border-hairline)',
                 borderRadius: '6px',
-                color: '#d1d5db',
+                color: 'var(--text-main)',
                 fontSize: '0.8rem',
                 cursor: 'pointer',
               }}
@@ -180,10 +180,10 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
       <div className="calm-panel" style={{ marginBottom: '1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
           <div>
-            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               How You're Doing
             </div>
-            <div style={{ fontSize: '0.82rem', color: '#6b7280', marginTop: '1px' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '1px' }}>
               Estimated cognitive demand based on typing cadence and pause intervals
             </div>
           </div>
@@ -191,7 +191,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           {/* Decoupled Estimate Quality */}
           <div className="estimate-quality-box">
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
-            <span>Estimate quality: <strong style={{ color: '#e5e7eb' }}>Good (82%)</strong></span>
+            <span>Estimate quality: <strong style={{ color: 'var(--text-main)' }}>Good (82%)</strong></span>
             <button onClick={() => setShowQualityDrawer(true)}>Why?</button>
           </div>
         </div>
@@ -202,7 +202,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           <div className="state-tile">
             <div className="state-label">
               <span>Workload</span>
-              <span style={{ fontSize: '0.7rem', color: '#6b7280', fontFamily: 'var(--font-mono)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 Index: {workload.index}
               </span>
             </div>
@@ -212,7 +212,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             <div className="calm-progress-track">
               <div className="calm-progress-bar calm-progress-violet" style={{ width: `${workload.pct}%` }} />
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               ↑ slightly higher than session start
             </div>
           </div>
@@ -221,7 +221,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           <div className="state-tile">
             <div className="state-label">
               <span>Fatigue</span>
-              <span style={{ fontSize: '0.7rem', color: '#6b7280', fontFamily: 'var(--font-mono)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 Index: {fatigue.index}
               </span>
             </div>
@@ -231,7 +231,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             <div className="calm-progress-track">
               <div className="calm-progress-bar calm-progress-emerald" style={{ width: `${fatigue.pct}%` }} />
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               → steady baseline level
             </div>
           </div>
@@ -240,7 +240,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           <div className="state-tile">
             <div className="state-label">
               <span>Engagement</span>
-              <span style={{ fontSize: '0.7rem', color: '#6b7280', fontFamily: 'var(--font-mono)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 Index: {engagement.index}
               </span>
             </div>
@@ -250,7 +250,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             <div className="calm-progress-track">
               <div className="calm-progress-bar calm-progress-emerald" style={{ width: `${engagement.pct}%` }} />
             </div>
-            <div style={{ fontSize: '0.72rem', color: '#6b7280', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               ● consistent typing flow
             </div>
           </div>
@@ -261,15 +261,15 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
       <div style={{ display: 'grid', gridTemplateColumns: '7fr 5fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
         {/* Human Observation Summary */}
         <div className="calm-panel">
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.75rem' }}>
             Flowstate Observation
           </div>
-          <p style={{ fontSize: '0.95rem', color: '#e5e7eb', lineHeight: 1.55 }}>
+          <p style={{ fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.55 }}>
             Your interaction pattern has remained relatively stable throughout this window. Attentional
             focus and typing cadence are well within normal operating bounds.
           </p>
-          <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid #161924', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+          <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               Factor: Sustained interaction rhythm
             </span>
             <button
@@ -277,7 +277,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#6366f1',
+                color: 'var(--laser-violet)',
                 fontSize: '0.78rem',
                 cursor: 'pointer',
               }}
@@ -291,10 +291,10 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
         <div className="calm-panel" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Recent Activity Trend
               </span>
-              <span style={{ fontSize: '0.7rem', color: '#6b7280', fontFamily: 'var(--font-mono)' }}>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                 Last 15m
               </span>
             </div>
@@ -304,7 +304,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
               <svg width="100%" height="48" viewBox="0 0 280 48" preserveAspectRatio="none">
                 <polyline
                   fill="none"
-                  stroke="#6366f1"
+                  stroke="var(--laser-violet)"
                   strokeWidth="2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -314,13 +314,13 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             </div>
           </div>
 
-          <div style={{ paddingTop: '0.75rem', borderTop: '1px solid #161924', textAlign: 'right' }}>
+          <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)', textAlign: 'right' }}>
             <button
               onClick={onNavigateToSignals}
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#6366f1',
+                color: 'var(--laser-violet)',
                 fontSize: '0.75rem',
                 cursor: 'pointer',
               }}
@@ -352,7 +352,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0, 0, 0, 0.7)',
+            background: 'rgba(0, 0, 0, 0.5)',
             backdropFilter: 'blur(4px)',
             display: 'flex',
             alignItems: 'center',
@@ -364,18 +364,18 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           <div
             style={{
               width: '380px',
-              background: '#0e1017',
-              border: '1px solid #1f2333',
+              background: 'var(--bay-bg)',
+              border: '1px solid var(--border-hairline)',
               borderRadius: '8px',
               padding: '1.5rem',
-              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.2)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f3f4f6' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-main)' }}>
               End this session?
             </h3>
-            <p style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '0.5rem', lineHeight: 1.45 }}>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: 1.45 }}>
               Your session observations and evidence trace will be saved permanently to your local History.
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}>
@@ -384,9 +384,9 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
                 style={{
                   padding: '6px 14px',
                   background: 'transparent',
-                  border: '1px solid #232738',
+                  border: '1px solid var(--border-hairline)',
                   borderRadius: '5px',
-                  color: '#9ca3af',
+                  color: 'var(--text-secondary)',
                   fontSize: '0.8rem',
                   cursor: 'pointer',
                 }}
