@@ -38,26 +38,41 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
   activeSession,
   durationMinutes,
 }) => {
-  const [advancedOpen, setAdvancedOpen] = useState(
-    ['evidence', 'evaluation', 'demo'].includes(currentView)
-  );
+  const [advancedOpen, setAdvancedOpen] = useState(true);
 
   return (
     <aside className="product-sidebar">
-      <div>
-        {/* Brand */}
-        <div className="sidebar-brand">
-          <div className="sidebar-brand-mark">◒</div>
+      {/* Brand & Logo */}
+      <div className="sidebar-brand-block">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div
+            style={{
+              width: '18px',
+              height: '18px',
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #6366f1 0%, #3b82f6 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#0a0c10' }} />
+          </div>
           <div>
-            <div className="sidebar-brand-title">FLOWSTATE</div>
-            <div className="sidebar-brand-subtitle">Adaptive Workspace</div>
+            <div className="sidebar-brand-name">FLOWSTATE</div>
+            <div className="sidebar-brand-tag">Adaptive Workspace</div>
           </div>
         </div>
+      </div>
+
+      {/* Navigation Links */}
+      <div className="sidebar-nav-body">
+        <div className="sidebar-section-label">Workspace</div>
 
         {/* Primary Product Navigation */}
         <div className="sidebar-nav-group">
           <button
-            className={`sidebar-nav-btn ${currentView === 'home' ? 'active' : ''}`}
+            className={`sidebar-nav-btn nav-tab-btn ${currentView === 'home' ? 'active' : ''}`}
             onClick={() => onSelectView('home')}
           >
             <Home size={15} />
@@ -65,7 +80,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </button>
 
           <button
-            className={`sidebar-nav-btn ${currentView === 'live' ? 'active' : ''}`}
+            className={`sidebar-nav-btn nav-tab-btn ${currentView === 'live' ? 'active' : ''}`}
             onClick={() => onSelectView('live')}
           >
             <Activity size={15} />
@@ -73,7 +88,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </button>
 
           <button
-            className={`sidebar-nav-btn ${currentView === 'history' ? 'active' : ''}`}
+            className={`sidebar-nav-btn nav-tab-btn ${currentView === 'history' ? 'active' : ''}`}
             onClick={() => onSelectView('history')}
           >
             <History size={15} />
@@ -81,7 +96,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           </button>
 
           <button
-            className={`sidebar-nav-btn ${currentView === 'signals' ? 'active' : ''}`}
+            className={`sidebar-nav-btn nav-tab-btn ${currentView === 'signals' ? 'active' : ''}`}
             onClick={() => onSelectView('signals')}
           >
             <LineChart size={15} />
@@ -108,7 +123,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
           {advancedOpen && (
             <div className="sidebar-nav-group" style={{ paddingLeft: '0.25rem' }}>
               <button
-                className={`sidebar-nav-btn ${currentView === 'evidence' ? 'active' : ''}`}
+                className={`sidebar-nav-btn nav-tab-btn ${currentView === 'evidence' ? 'active' : ''}`}
                 onClick={() => onSelectView('evidence')}
               >
                 <ShieldCheck size={14} />
@@ -116,15 +131,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
               </button>
 
               <button
-                className={`sidebar-nav-btn ${currentView === 'evaluation' ? 'active' : ''}`}
+                className={`sidebar-nav-btn nav-tab-btn ${currentView === 'evaluation' ? 'active' : ''}`}
                 onClick={() => onSelectView('evaluation')}
               >
                 <FlaskConical size={14} />
-                <span>Evaluation Lab</span>
+                <span>Evaluation & Evidence</span>
               </button>
 
               <button
-                className={`sidebar-nav-btn ${currentView === 'demo' ? 'active' : ''}`}
+                className={`sidebar-nav-btn nav-tab-btn ${currentView === 'demo' ? 'active' : ''}`}
                 onClick={() => onSelectView('demo')}
               >
                 <Play size={14} />

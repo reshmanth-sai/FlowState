@@ -73,34 +73,10 @@ if os.path.isdir(fixtures_path):
     app.mount("/fixtures", StaticFiles(directory=fixtures_path, html=True), name="fixtures")
 
 
-# WebSocket Connection Manager for Live Streaming to Monitor
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[str, Set[WebSocket]] = {}
+from backend.api.websocket_manager import ws_manager
+from backend.sessions.orchestrator import SessionOrchestrator
 
-    async def connect(self, session_id: str, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.setdefault(session_id, set()).add(websocket)
-
-    def disconnect(self, session_id: str, websocket: WebSocket):
-        if session_id in self.active_connections:
-            self.active_connections[session_id].discard(websocket)
-            if not self.active_connections[session_id]:
-                del self.active_connections[session_id]
-
-    async def broadcast_to_session(self, session_id: str, message: dict):
-        if session_id in self.active_connections:
-            dead = set()
-            for connection in self.active_connections[session_id]:
-                try:
-                    await connection.send_json(message)
-                except Exception:
-                    dead.add(connection)
-            for d in dead:
-                self.active_connections[session_id].discard(d)
-
-
-ws_manager = ConnectionManager()
+orchestrator_instance = SessionOrchestrator()
 
 
 @app.websocket("/ws/session/{session_id}")
@@ -108,13 +84,44 @@ async def websocket_session_stream(websocket: WebSocket, session_id: str):
     """WebSocket stream providing real-time cognitive monitor updates."""
     await ws_manager.connect(session_id, websocket)
     try:
+        # Always send initial live state snapshot on connection
+        inferences = await orchestrator_instance.inference_repo.get_timeline_for_session(session_id)
+        latest_inf = inferences[-1] if inferences else None
+        interventions = await orchestrator_instance.adaptation_engine.get_session_interventions(session_id)
+        latest_decision = interventions[-1] if interventions else None
+        await websocket.send_json({
+            "type": "LIVE_SESSION_INIT",
+            "session_id": session_id,
+            "latest_inference": latest_inf.model_dump() if latest_inf else None,
+            "latest_decision": latest_decision.model_dump() if latest_decision else None,
+        })
+
         while True:
             # Keep-alive ping/pong or client event messages
             data = await websocket.receive_text()
-            # Echo heartbeat
-            await websocket.send_json({"type": "PONG", "received": data})
+            if data == "PING":
+                await websocket.send_json({"type": "PONG"})
+            else:
+                await websocket.send_json({"type": "ACK", "received": data})
     except WebSocketDisconnect:
         ws_manager.disconnect(session_id, websocket)
+    except Exception:
+        ws_manager.disconnect(session_id, websocket)
+
+
+@app.websocket("/ws/live")
+async def websocket_live_global_stream(websocket: WebSocket):
+    """WebSocket stream providing global live monitor updates across all active sessions."""
+    await ws_manager.connect_global(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            if data == "PING":
+                await websocket.send_json({"type": "PONG"})
+    except WebSocketDisconnect:
+        ws_manager.disconnect_global(websocket)
+    except Exception:
+        ws_manager.disconnect_global(websocket)
 
 
 @app.get("/")

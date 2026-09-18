@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Pause,
   Play,
   Square,
-  HelpCircle,
-  ExternalLink,
-  Shield,
+  Zap,
+  CheckCircle2,
   Clock,
-  CheckCircle,
+  Shield,
+  Activity,
+  AlertTriangle,
 } from 'lucide-react';
-import { Session, InferenceRecord, SignalWindow, AdaptationDecision } from '../api';
+import { Session, InferenceRecord, SignalWindow, AdaptationDecision, LiveSessionState } from '../api';
 import { EstimateQualityDrawer } from './EstimateQualityDrawer';
 import { AdaptationStatusCard } from './AdaptationStatusCard';
 
@@ -20,6 +21,11 @@ interface LiveSessionViewProps {
   windows: SignalWindow[];
   latestDecision?: AdaptationDecision | null;
   durationMinutes: number;
+  wsStatus?: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED';
+  lastLiveUpdate?: Date | null;
+  cadencePulse?: boolean;
+  liveState?: LiveSessionState | null;
+  onTriggerDemoBurst?: (elevated: boolean) => void;
   onBackToHome: () => void;
   onNavigateToSignals: () => void;
   onNavigateToEvidence: () => void;
@@ -32,6 +38,11 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   windows,
   latestDecision,
   durationMinutes,
+  wsStatus = 'DISCONNECTED',
+  lastLiveUpdate = null,
+  cadencePulse = false,
+  liveState = null,
+  onTriggerDemoBurst,
   onBackToHome,
   onNavigateToSignals,
   onNavigateToEvidence,
@@ -40,27 +51,54 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [showQualityDrawer, setShowQualityDrawer] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
+  const [adaptationDismissed, setAdaptationDismissed] = useState(false);
+  const [now, setNow] = useState(Date.now());
+
+  // Second-by-second timer for stale state calculation
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const secondsSinceUpdate = lastLiveUpdate ? Math.floor((now - lastLiveUpdate.getTime()) / 1000) : null;
+
+  // Stale state text
+  let freshnessText = 'Waiting for observation…';
+  let isStale = false;
+  let isUnavailable = false;
+
+  if (secondsSinceUpdate !== null) {
+    if (secondsSinceUpdate < 20) {
+      freshnessText = 'Live • Just updated';
+    } else if (secondsSinceUpdate < 90) {
+      freshnessText = `Last updated ${secondsSinceUpdate}s ago`;
+      isStale = true;
+    } else {
+      freshnessText = 'Signal temporarily unavailable. Waiting for next observation.';
+      isUnavailable = true;
+    }
+  }
 
   // Categorical mappings
   const getWorkloadState = (val?: number) => {
     if (val === undefined) return { label: 'Moderate', pct: 54, index: '0.54', color: '#6366f1' };
-    if (val < 0.35) return { label: 'Low', pct: Math.round(val * 100), index: val.toFixed(2), color: '#10b981' };
-    if (val < 0.7) return { label: 'Moderate', pct: Math.round(val * 100), index: val.toFixed(2), color: '#6366f1' };
-    return { label: 'Elevated', pct: Math.round(val * 100), index: val.toFixed(2), color: '#f59e0b' };
+    if (val < 0.35) return { label: 'Low', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--phosphor-jade)' };
+    if (val < 0.7) return { label: 'Moderate', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--laser-violet)' };
+    return { label: 'Elevated', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--amber-alert)' };
   };
 
   const getFatigueState = (val?: number) => {
-    if (val === undefined) return { label: 'Low', pct: 24, index: '0.24', color: '#10b981' };
-    if (val < 0.4) return { label: 'Low', pct: Math.round(val * 100), index: val.toFixed(2), color: '#10b981' };
-    if (val < 0.75) return { label: 'Moderate', pct: Math.round(val * 100), index: val.toFixed(2), color: '#f59e0b' };
+    if (val === undefined) return { label: 'Low', pct: 24, index: '0.24', color: 'var(--phosphor-jade)' };
+    if (val < 0.4) return { label: 'Low', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--phosphor-jade)' };
+    if (val < 0.75) return { label: 'Moderate', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--amber-alert)' };
     return { label: 'Elevated', pct: Math.round(val * 100), index: val.toFixed(2), color: '#ef4444' };
   };
 
   const getEngagementState = (val?: number) => {
-    if (val === undefined) return { label: 'High', pct: 88, index: '0.88', color: '#10b981' };
-    if (val > 0.6) return { label: 'High', pct: Math.round(val * 100), index: val.toFixed(2), color: '#10b981' };
-    if (val > 0.35) return { label: 'Moderate', pct: Math.round(val * 100), index: val.toFixed(2), color: '#6366f1' };
-    return { label: 'Low', pct: Math.round(val * 100), index: val.toFixed(2), color: '#9ca3af' };
+    if (val === undefined) return { label: 'High', pct: 88, index: '0.88', color: 'var(--phosphor-jade)' };
+    if (val > 0.6) return { label: 'High', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--phosphor-jade)' };
+    if (val > 0.35) return { label: 'Moderate', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--laser-violet)' };
+    return { label: 'Low', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--text-muted)' };
   };
 
   const workload = getWorkloadState(latestInference?.workload.value);
@@ -75,10 +113,34 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
     return `${x},${y}`;
   }).join(' ');
 
+  // Live timeline recent ticks (bounded rolling window of last 6 observations)
+  const recentTimeline = windows.slice(-6).map((win, idx) => {
+    const d = new Date(win.end_time);
+    const timeStr = isNaN(d.getTime())
+      ? `+${(idx + 1) * 15}s`
+      : `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+    return {
+      id: win.window_id,
+      label: timeStr,
+      isLatest: idx === Math.min(5, windows.length - 1),
+    };
+  });
+
+  const taskPlatform = liveState?.context?.platform || 'LeetCode';
+  const taskTitle = liveState?.context?.task || 'Two Sum';
+  const taskLang = liveState?.context?.language || 'Python';
+  const taskDiff = liveState?.context?.difficulty || 'Easy Difficulty';
+
+  const hasOfferedAdaptation =
+    latestDecision &&
+    latestDecision.status === 'OFFERED' &&
+    latestDecision.action !== 'NO_ACTION' &&
+    !adaptationDismissed;
+
   return (
     <div className="product-container">
-      {/* Back to Home & Breadcrumb */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.75rem' }}>
+      {/* Back to Home & Breadcrumb / Real-time Status Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
         <button
           onClick={onBackToHome}
           style={{
@@ -87,7 +149,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             gap: '6px',
             background: 'transparent',
             border: 'none',
-            color: '#9ca3af',
+            color: 'var(--text-secondary)',
             fontSize: '0.82rem',
             cursor: 'pointer',
           }}
@@ -96,22 +158,150 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           <span>Back to Home</span>
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Signal Source:</span>
-          <span
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* Live Closed-Loop Stage Visualization */}
+          <div
             style={{
-              fontSize: '0.75rem',
-              color: '#10b981',
-              background: 'rgba(16, 185, 129, 0.08)',
-              padding: '2px 8px',
-              borderRadius: '12px',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.72rem',
+              color: 'var(--text-muted)',
+              background: 'var(--bay-elevated)',
+              padding: '4px 10px',
+              borderRadius: '20px',
+              border: '1px solid var(--border-hairline)',
             }}
           >
-            ● Browser Telemetry
-          </span>
+            <span style={{ color: cadencePulse ? 'var(--phosphor-jade)' : 'var(--text-secondary)', fontWeight: cadencePulse ? 700 : 500, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: cadencePulse ? 'var(--phosphor-jade)' : 'var(--text-muted)',
+                  boxShadow: cadencePulse ? '0 0 8px var(--phosphor-jade)' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              />
+              Observe
+            </span>
+            <span>→</span>
+            <span style={{ color: latestInference ? 'var(--laser-violet)' : 'var(--text-muted)', fontWeight: latestInference ? 600 : 500 }}>
+              Estimate
+            </span>
+            <span>→</span>
+            <span style={{ color: latestInference ? 'var(--phosphor-jade)' : 'var(--text-muted)', fontWeight: latestInference ? 600 : 500 }}>
+              Quality Check
+            </span>
+            <span>→</span>
+            <span style={{ color: hasOfferedAdaptation ? 'var(--amber-alert)' : 'var(--text-muted)', fontWeight: hasOfferedAdaptation ? 700 : 500 }}>
+              Adapt
+            </span>
+          </div>
+
+          {/* Connection Status & Cadence Pulse Indicator */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                fontSize: '0.75rem',
+                color: wsStatus === 'CONNECTED' ? 'var(--phosphor-jade)' : 'var(--text-muted)',
+                background: wsStatus === 'CONNECTED' ? 'rgba(16, 185, 129, 0.08)' : 'var(--bay-elevated)',
+                padding: '3px 10px',
+                borderRadius: '12px',
+                border: '1px solid var(--border-hairline)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+              }}
+            >
+              <span
+                style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: wsStatus === 'CONNECTED' ? '#10b981' : '#94a3b8',
+                  boxShadow: cadencePulse ? '0 0 10px #10b981' : 'none',
+                  transition: 'all 0.2s ease',
+                }}
+              />
+              <span>{wsStatus === 'CONNECTED' ? 'Extension Connected' : 'Connecting Stream…'}</span>
+            </span>
+
+            {/* Freshness / Stale Indicator */}
+            <span
+              style={{
+                fontSize: '0.72rem',
+                color: isUnavailable ? 'var(--amber-alert)' : isStale ? 'var(--text-muted)' : 'var(--text-secondary)',
+                fontFamily: 'var(--font-mono)',
+              }}
+            >
+              {freshnessText}
+            </span>
+          </div>
         </div>
       </div>
+
+      {/* Real-Time Adaptation Notification Banner (Subtle, non-intrusive) */}
+      {hasOfferedAdaptation && (
+        <div
+          className="calm-panel"
+          style={{
+            borderLeft: '4px solid var(--amber-alert)',
+            background: 'var(--bay-elevated)',
+            marginBottom: '1.5rem',
+            padding: '1rem 1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            animation: 'fadeIn 0.3s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <AlertTriangle size={18} style={{ color: 'var(--amber-alert)', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                Flowstate adapted your workspace
+              </div>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                {latestDecision?.reason || 'Secondary distractions reduced based on elevated interaction cadence.'}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setShowQualityDrawer(true)}
+              style={{
+                padding: '5px 12px',
+                background: 'transparent',
+                border: '1px solid var(--border-hairline)',
+                borderRadius: '6px',
+                color: 'var(--text-main)',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Why?
+            </button>
+            <button
+              onClick={() => setAdaptationDismissed(true)}
+              style={{
+                padding: '5px 12px',
+                background: 'var(--laser-violet)',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#ffffff',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Return to normal
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Task Context Hero */}
       <div className="calm-panel" style={{ marginBottom: '1.5rem' }}>
@@ -121,20 +311,44 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
               Current Task Context
             </div>
             <div style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em', marginTop: '2px' }}>
-              Two Sum
+              {taskTitle}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-              <span>LeetCode</span>
+              <span style={{ textTransform: 'capitalize' }}>{taskPlatform}</span>
               <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-              <span>Easy Difficulty</span>
+              <span>{taskDiff}</span>
               <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-              <span style={{ color: '#10b981' }}>Python</span>
+              <span style={{ color: 'var(--phosphor-jade)' }}>{taskLang}</span>
               <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
               <span>{durationMinutes || 18}m active</span>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Pitch Accelerator (Demo Cadence Burst) Button */}
+            {onTriggerDemoBurst && (
+              <button
+                onClick={() => onTriggerDemoBurst(false)}
+                title="Live Pitch Accelerator: Ingest a real 30s computer behavior batch into the production pipeline"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  background: 'rgba(99, 102, 241, 0.08)',
+                  border: '1px solid rgba(99, 102, 241, 0.25)',
+                  borderRadius: '6px',
+                  color: 'var(--laser-violet)',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <Zap size={13} />
+                <span>Simulate 30s Burst</span>
+              </button>
+            )}
+
             <button
               onClick={() => setIsPaused(!isPaused)}
               style={{
@@ -175,6 +389,57 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Live Rolling Activity Timeline */}
+      {recentTimeline.length > 0 && (
+        <div className="calm-panel" style={{ marginBottom: '1.5rem', padding: '0.85rem 1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Session Activity Timeline
+            </span>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+              30s Sliding Windows (15s Step)
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', marginTop: '0.75rem', paddingBottom: '0.25rem' }}>
+            {/* Timeline track line */}
+            <div style={{ position: 'absolute', top: '7px', left: '10px', right: '10px', height: '2px', background: 'var(--border-hairline)', zIndex: 1 }} />
+
+            {recentTimeline.map((tick) => (
+              <div key={tick.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, minWidth: '55px' }}>
+                <div
+                  style={{
+                    width: tick.isLatest ? '14px' : '10px',
+                    height: tick.isLatest ? '14px' : '10px',
+                    borderRadius: '50%',
+                    background: tick.isLatest ? 'var(--laser-violet)' : 'var(--bay-elevated)',
+                    border: tick.isLatest ? '2px solid #ffffff' : '2px solid var(--border-hairline)',
+                    boxShadow: tick.isLatest ? '0 0 10px var(--laser-violet)' : 'none',
+                    transition: 'all 0.3s ease',
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: '0.68rem',
+                    color: tick.isLatest ? 'var(--text-main)' : 'var(--text-muted)',
+                    fontWeight: tick.isLatest ? 700 : 400,
+                    marginTop: '6px',
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {tick.label}
+                </span>
+                {tick.isLatest && (
+                  <span style={{ fontSize: '0.62rem', color: 'var(--laser-violet)', fontWeight: 600, marginTop: '1px' }}>
+                    ↑ estimate updated
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Primary Estimated State Composition (The 3 States) */}
       <div className="calm-panel" style={{ marginBottom: '1.5rem' }}>

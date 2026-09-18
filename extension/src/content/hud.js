@@ -1,6 +1,7 @@
 /**
- * Encapsulated Floating HUD for Flowstate Extension.
- * Mounted inside an isolated ShadowRoot to prevent CSS collisions.
+ * Flowstate Minimal Ambient Floating HUD
+ * Encapsulated inside an isolated ShadowRoot to prevent CSS collisions on host sites.
+ * Supports 6 ambient states: CONNECTED, GATHERING, ESTIMATE AVAILABLE, LIMITED QUALITY, PAUSED, DISCONNECTED.
  */
 
 export class FlowstateHud {
@@ -9,6 +10,8 @@ export class FlowstateHud {
     this.onToggleSession = options.onToggleSession || (() => {});
     this.isExpanded = false;
     this.isMonitoring = false;
+    this.isPaused = false;
+    this.isGathering = false;
     this.currentInference = null;
     this.activeIntervention = null;
     this.isBreakActive = false;
@@ -16,6 +19,7 @@ export class FlowstateHud {
     this.breathPhase = 'inhale';
     this.sessionId = null;
     this.currentContext = null;
+    this.explicitState = null;
 
     this._mount();
   }
@@ -35,93 +39,155 @@ export class FlowstateHud {
 
   _injectStyles() {
     const style = document.createElement('style');
-    // Minimal reset & HUD styling embedded directly for instant render
     style.textContent = `
       :host {
         all: initial;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        font-size: 13px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+        font-size: 12px;
         line-height: 1.4;
         color: #f1f5f9;
         z-index: 2147483647;
         position: fixed;
-        bottom: 20px;
-        right: 20px;
+        bottom: 18px;
+        right: 18px;
         pointer-events: auto;
       }
       * { box-sizing: border-box; margin: 0; padding: 0; }
+      
       .fs-hud-container {
-        background: rgba(15, 23, 42, 0.92);
+        background: rgba(15, 23, 42, 0.94);
         backdrop-filter: blur(16px);
         -webkit-backdrop-filter: blur(16px);
         border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 14px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(99,102,241,0.15);
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(129, 140, 248, 0.12);
         overflow: hidden;
         user-select: none;
-        transition: all 0.2s ease;
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
       }
+      
+      /* Minimal Collapsed Pill */
       .fs-hud-pill {
         display: flex;
         align-items: center;
         gap: 8px;
-        padding: 8px 14px;
+        padding: 7px 13px;
         cursor: pointer;
+        transition: background 0.15s ease;
       }
-      .fs-hud-pill:hover { background: rgba(255,255,255,0.05); }
+      .fs-hud-pill:hover {
+        background: rgba(255, 255, 255, 0.06);
+      }
+      
       .fs-pulse-dot {
-        width: 8px; height: 8px; border-radius: 50%;
-        background: #10b981; box-shadow: 0 0 8px #10b981;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 8px #10b981;
+        transition: all 0.2s ease;
       }
-      .fs-pulse-dot.idle { background: #94a3b8; box-shadow: none; }
-      .fs-pulse-dot.alert { background: #f59e0b; box-shadow: 0 0 10px #f59e0b; }
-      .fs-pill-brand { font-weight: 800; font-size: 11px; letter-spacing: 0.08em; color: #818cf8; }
-      .fs-pill-status { font-size: 11px; color: #94a3b8; font-weight: 600; }
+      .fs-pulse-dot.idle, .fs-pulse-dot.disconnected {
+        background: #64748b;
+        box-shadow: none;
+      }
+      .fs-pulse-dot.gathering {
+        background: #06b6d4;
+        box-shadow: 0 0 8px #06b6d4;
+        animation: fs-pulse-glow 1.5s infinite;
+      }
+      .fs-pulse-dot.limited, .fs-pulse-dot.alert {
+        background: #f59e0b;
+        box-shadow: 0 0 10px #f59e0b;
+      }
+      .fs-pulse-dot.paused {
+        background: #94a3b8;
+        box-shadow: 0 0 6px #94a3b8;
+      }
+      
+      @keyframes fs-pulse-glow {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.85); }
+      }
+      
+      .fs-pill-brand {
+        font-weight: 800;
+        font-size: 10.5px;
+        letter-spacing: 0.08em;
+        color: #818cf8;
+      }
+      .fs-pill-status {
+        font-size: 10.5px;
+        color: #94a3b8;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      
+      /* Expanded Card */
       .fs-hud-card {
-        width: 290px;
-        padding: 14px;
+        width: 285px;
+        padding: 13px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 9px;
       }
       .fs-card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid rgba(255,255,255,0.08);
-        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        padding-bottom: 7px;
       }
-      .fs-card-title { font-weight: 700; font-size: 12px; color: #f8fafc; }
+      .fs-card-title {
+        font-weight: 700;
+        font-size: 11.5px;
+        color: #f8fafc;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
       .fs-btn-icon {
-        background: transparent; border: none; color: #94a3b8;
-        cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        font-size: 13px;
+        padding: 2px 5px;
+        border-radius: 4px;
+        transition: all 0.15s;
       }
-      .fs-btn-icon:hover { color: white; background: rgba(255,255,255,0.1); }
+      .fs-btn-icon:hover {
+        color: white;
+        background: rgba(255, 255, 255, 0.1);
+      }
+      
+      /* Task Context */
       .fs-task-context-box {
-        background: rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 8px;
-        padding: 8px 10px;
+        border-radius: 7px;
+        padding: 7px 9px;
         display: flex;
         flex-direction: column;
         gap: 2px;
       }
-      .fs-context-platform {
-        font-size: 10px;
+      .fs-task-platform, .fs-context-platform {
+        font-size: 9.5px;
         font-weight: 800;
         letter-spacing: 0.06em;
         color: #818cf8;
         text-transform: uppercase;
       }
       .fs-context-meta {
-        font-size: 11px;
+        font-size: 10.5px;
         color: #cbd5e1;
         display: flex;
         align-items: center;
         gap: 6px;
       }
       .fs-diff-tag {
-        font-size: 9.5px;
+        font-size: 9px;
         font-weight: 700;
         padding: 1px 5px;
         border-radius: 3px;
@@ -130,34 +196,101 @@ export class FlowstateHud {
       .fs-diff-tag.easy { background: rgba(16, 185, 129, 0.2); color: #34d399; }
       .fs-diff-tag.medium { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
       .fs-diff-tag.hard { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-      .fs-metric-row { display: flex; flex-direction: column; gap: 3px; }
-      .fs-metric-labels { display: flex; justify-content: space-between; font-size: 11px; color: #cbd5e1; }
-      .fs-metric-track { height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
-      .fs-metric-bar { height: 100%; border-radius: 3px; }
+      
+      /* Metrics */
+      .fs-metrics-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .fs-metric-row {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .fs-metric-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10.5px;
+        color: #cbd5e1;
+      }
+      .fs-metric-track {
+        height: 5px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 3px;
+        overflow: hidden;
+      }
+      .fs-metric-bar {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.4s ease;
+      }
+      
+      /* Footer */
       .fs-hud-footer {
-        display: flex; justify-content: space-between; align-items: center;
-        font-size: 10px; color: #64748b; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 9.5px;
+        color: #64748b;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 7px;
       }
       .fs-gate-badge {
-        font-weight: 700; padding: 2px 6px; border-radius: 4px; font-size: 9px;
+        font-weight: 700;
+        padding: 1.5px 5px;
+        border-radius: 3px;
+        font-size: 9px;
       }
-      .fs-gate-badge.PASS { background: rgba(16,185,129,0.2); color: #34d399; }
-      .fs-gate-badge.DEGRADED { background: rgba(245,158,11,0.2); color: #fbbf24; }
-      .fs-gate-badge.INSUFFICIENT { background: rgba(239,68,68,0.2); color: #f87171; }
+      .fs-gate-badge.PASS { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+      .fs-gate-badge.DEGRADED { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+      .fs-gate-badge.INSUFFICIENT { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+      
+      /* Adaptation / Intervention Alert */
       .fs-intervention-alert {
-        background: rgba(245,158,11,0.15); border: 1px solid #f59e0b; border-radius: 8px; padding: 10px;
-        display: flex; flex-direction: column; gap: 6px;
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        border-radius: 7px;
+        padding: 9px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
       }
-      .fs-intervention-title { font-size: 11px; font-weight: 800; color: #fcd34d; }
-      .fs-intervention-reason { font-size: 10.5px; color: #e2e8f0; line-height: 1.35; }
-      .fs-btn-row { display: flex; gap: 6px; margin-top: 4px; }
+      .fs-intervention-title {
+        font-size: 10.5px;
+        font-weight: 800;
+        color: #fcd34d;
+      }
+      .fs-intervention-reason {
+        font-size: 10px;
+        color: #e2e8f0;
+        line-height: 1.35;
+      }
+      .fs-btn-row {
+        display: flex;
+        gap: 5px;
+        margin-top: 3px;
+      }
       .fs-btn {
-        flex: 1; padding: 5px 8px; font-size: 10px; font-weight: 700; border-radius: 5px; border: none; cursor: pointer;
+        flex: 1;
+        padding: 5px 8px;
+        font-size: 9.5px;
+        font-weight: 700;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        transition: opacity 0.15s;
       }
+      .fs-btn:hover { opacity: 0.9; }
       .fs-btn.primary { background: #f59e0b; color: #0f172a; }
-      .fs-btn.secondary { background: rgba(255,255,255,0.1); color: #f1f5f9; }
+      .fs-btn.secondary { background: rgba(255, 255, 255, 0.1); color: #f1f5f9; }
+      
       .fs-breath-guide {
-        background: rgba(6, 182, 212, 0.15); border: 1px solid #06b6d4; border-radius: 8px; padding: 12px; text-align: center;
+        background: rgba(6, 182, 212, 0.15);
+        border: 1px solid #06b6d4;
+        border-radius: 7px;
+        padding: 10px;
+        text-align: center;
       }
     `;
     this.shadow.appendChild(style);
@@ -178,14 +311,61 @@ export class FlowstateHud {
     this._render();
   }
 
+  setGathering(isGathering) {
+    this.isGathering = isGathering;
+    this._render();
+  }
+
+  setPaused(isPaused) {
+    this.isPaused = isPaused;
+    this._render();
+  }
+
+  setStatus(statusName) {
+    this.explicitState = statusName;
+    this._render();
+  }
+
   updateState(inference, activeIntervention) {
     this.currentInference = inference;
-    if (activeIntervention && activeIntervention.status === 'OFFERED') {
+    if (activeIntervention && (activeIntervention.status === 'OFFERED' || activeIntervention.status === 'APPLIED')) {
       this.activeIntervention = activeIntervention;
     } else if (!activeIntervention) {
       this.activeIntervention = null;
     }
     this._render();
+  }
+
+  /**
+   * Determine one of the 6 canonical ambient states:
+   * 1. DISCONNECTED
+   * 2. PAUSED
+   * 3. LIMITED QUALITY
+   * 4. GATHERING
+   * 5. ESTIMATE AVAILABLE
+   * 6. CONNECTED
+   */
+  _getCurrentAmbientState() {
+    if (this.explicitState) return this.explicitState;
+    if (!this.sessionId || !this.isMonitoring) {
+      return 'DISCONNECTED';
+    }
+    if (this.isPaused) {
+      return 'PAUSED';
+    }
+    if (this.activeIntervention && this.activeIntervention.status === 'OFFERED') {
+      return 'ADAPTATION OFFERED';
+    }
+    if (this.currentInference) {
+      if (this.currentInference.quality_gate === 'DEGRADED' || this.currentInference.quality_gate === 'INSUFFICIENT') {
+        return 'LIMITED QUALITY';
+      }
+      return 'ESTIMATE AVAILABLE';
+    }
+    if (this.isGathering) {
+      return 'GATHERING';
+    }
+    return 'CONNECTED';
   }
 
   _render() {
@@ -196,17 +376,22 @@ export class FlowstateHud {
       this.shadow.appendChild(container);
     }
 
+    const state = this._getCurrentAmbientState();
+
     if (!this.isExpanded) {
       // Collapsed Pill View
-      const hasAlert = !!this.activeIntervention;
-      const dotClass = hasAlert ? 'alert' : this.isMonitoring ? '' : 'idle';
-      const statusText = hasAlert ? 'ADAPTATION OFFERED' : this.isMonitoring ? 'MONITORING' : 'IDLE';
+      let dotClass = '';
+      if (state === 'DISCONNECTED') dotClass = 'disconnected';
+      else if (state === 'PAUSED') dotClass = 'paused';
+      else if (state === 'LIMITED QUALITY' || state === 'ADAPTATION OFFERED') dotClass = 'alert';
+      else if (state === 'GATHERING') dotClass = 'gathering';
+      else dotClass = '';
 
       container.innerHTML = `
         <div class="fs-hud-pill">
           <div class="fs-pulse-dot ${dotClass}"></div>
           <span class="fs-pill-brand">FLOWSTATE</span>
-          <span class="fs-pill-status">${statusText}</span>
+          <span class="fs-pill-status">${state}</span>
         </div>
       `;
 
@@ -227,24 +412,25 @@ export class FlowstateHud {
         alertHtml = `
           <div class="fs-breath-guide">
             <div style="font-weight: 700; color: #67e8f9; font-size: 11px;">RECOVERY PAUSE</div>
-            <div style="font-size: 18px; font-weight: 800; margin: 6px 0; color: white;">${this.breakCountdown}s</div>
-            <div style="font-size: 10px; color: #cbd5e1;">Box Breathing: Inhale 4s • Hold 4s • Exhale 4s</div>
+            <div style="font-size: 17px; font-weight: 800; margin: 4px 0; color: white;">${this.breakCountdown}s</div>
+            <div style="font-size: 9.5px; color: #cbd5e1;">Box Breathing: Inhale 4s • Hold 4s • Exhale 4s</div>
           </div>
         `;
       } else if (this.activeIntervention) {
+        const isApplied = this.activeIntervention.status === 'APPLIED';
         alertHtml = `
           <div class="fs-intervention-alert">
             <div class="fs-intervention-title">⚠️ ${this.activeIntervention.action}</div>
             <div class="fs-intervention-reason">${this.activeIntervention.reason}</div>
             <div class="fs-btn-row">
-              <button class="fs-btn primary" id="fs-accept-btn">Accept</button>
+              <button class="fs-btn primary" id="fs-accept-btn">${isApplied ? 'Return to normal' : 'Accept'}</button>
               <button class="fs-btn secondary" id="fs-dismiss-btn">Dismiss</button>
             </div>
           </div>
         `;
       }
 
-      // Task Context Box Formatting
+      // Task Context Box
       let contextHtml = '';
       if (this.currentContext) {
         const ctx = this.currentContext.context || this.currentContext;
@@ -262,11 +448,11 @@ export class FlowstateHud {
 
         contextHtml = `
           <div class="fs-task-context-box">
-            <div class="fs-context-platform">${platform}</div>
+            <div class="fs-task-platform fs-context-platform">${platform}</div>
             <div class="fs-context-meta">
-              <span style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;">${title}</span>
+              <span style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 155px;">${title}</span>
               ${diffBadge}
-              ${lang ? `<span style="color: #94a3b8; font-size: 10px;">${lang}</span>` : ''}
+              ${lang ? `<span style="color: #94a3b8; font-size: 9.5px;">${lang}</span>` : ''}
             </div>
           </div>
         `;
@@ -330,14 +516,24 @@ export class FlowstateHud {
       const acceptBtn = container.querySelector('#fs-accept-btn');
       if (acceptBtn) {
         acceptBtn.onclick = () => {
+          if (!this.activeIntervention) return;
           const action = this.activeIntervention.action;
           const id = this.activeIntervention.intervention_id;
-          this.onInterventionResponse(id, 'ACCEPTED');
-          if (action === 'SUGGEST_SHORT_BREAK') {
-            this._startBreakCountdown(30);
-          } else {
+          const isApplied = this.activeIntervention.status === 'APPLIED';
+          
+          if (isApplied) {
+            // Return to normal
+            this.onInterventionResponse(id, 'RESET');
             this.activeIntervention = null;
             this._render();
+          } else {
+            this.onInterventionResponse(id, 'ACCEPTED');
+            if (action === 'SUGGEST_SHORT_BREAK') {
+              this._startBreakCountdown(30);
+            } else {
+              this.activeIntervention = null;
+              this._render();
+            }
           }
         };
       }
@@ -345,6 +541,7 @@ export class FlowstateHud {
       const dismissBtn = container.querySelector('#fs-dismiss-btn');
       if (dismissBtn) {
         dismissBtn.onclick = () => {
+          if (!this.activeIntervention) return;
           const id = this.activeIntervention.intervention_id;
           this.onInterventionResponse(id, 'DISMISSED');
           this.activeIntervention = null;

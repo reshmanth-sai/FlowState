@@ -137,6 +137,9 @@ class BrowserTelemetryRequest(BaseModel):
     metadata: Dict[str, Any] = {}
 
 
+from backend.api.websocket_manager import ws_manager
+
+
 @router.post("/{session_id}/browser-telemetry")
 async def submit_browser_telemetry(session_id: str, req: BrowserTelemetryRequest):
     """Receive privacy-preserving aggregated computer behavior telemetry from browser extension."""
@@ -191,10 +194,161 @@ async def submit_browser_telemetry(session_id: str, req: BrowserTelemetryRequest
         if last.status.value == "OFFERED":
             active_intervention = last
 
+    # Construct canonical LiveSessionState payload
+    inf = live_result.get("inference") if live_result else None
+    decision = live_result.get("adaptation") if live_result else None
+    if not decision and active_intervention:
+        decision = active_intervention.model_dump()
+
+    ctx_task = (req.context or {}).get("task", {}) if req.context else {}
+    task_name = ctx_task.get("title") or req.page_title or "Two Sum"
+    task_lang = ctx_task.get("language") or "Python"
+    task_diff = ctx_task.get("difficulty") or "Easy"
+
+    live_state = {
+        "session_id": session_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "event_id": saved_event.id if saved_event else None,
+        "estimate": {
+            "workload": inf["workload"]["level"] if inf else "MODERATE",
+            "workload_value": inf["workload"]["value"] if inf else 0.54,
+            "fatigue": inf["fatigue"]["level"] if inf else "LOW",
+            "fatigue_value": inf["fatigue"]["value"] if inf else 0.24,
+            "engagement": inf["engagement"]["level"] if inf else "HIGH",
+            "engagement_value": inf["engagement"]["value"] if inf else 0.88,
+        } if inf else None,
+        "quality": {
+            "gate": inf["quality_gate"] if inf else "PASS",
+            "confidence": inf["workload"]["confidence"] if inf else 0.82,
+        } if inf else None,
+        "adaptation": {
+            "action": decision["action"] if decision else "NO_ACTION",
+            "status": decision["status"] if decision else "UNMODIFIED",
+            "reason": decision["reason"] if decision else "Workspace unchanged — cognitive load is within your optimal focus zone.",
+            "cooldown_seconds": decision.get("cooldown_seconds", 120) if decision else 120,
+            "intervention_id": decision.get("intervention_id") if decision else None,
+        } if decision else {
+            "action": "NO_ACTION",
+            "status": "UNMODIFIED",
+            "reason": "Workspace unchanged — cognitive load is within your optimal focus zone.",
+            "cooldown_seconds": 120,
+            "intervention_id": None,
+        },
+        "context": {
+            "platform": req.platform,
+            "task": task_name,
+            "language": task_lang,
+            "difficulty": task_diff,
+        },
+        "provenance": "COMPUTER_BEHAVIOR",
+        "latest_window": live_result.get("window") if live_result else None,
+        "latest_features": live_result.get("features") if live_result else None,
+        "latest_inference": inf,
+    }
+
+    # Broadcast real-time update to all subscribed WebSocket clients
+    await ws_manager.broadcast_to_session(session_id, {
+        "type": "LIVE_SESSION_UPDATE",
+        **live_state,
+    })
+
     return {
         "status": "INGESTED",
         "event_id": saved_event.id if saved_event else None,
         "live_update": live_result is not None,
-        "latest_inference": live_result.get("inference") if live_result else None,
+        "latest_inference": inf,
         "active_intervention": active_intervention,
+        "live_state": live_state,
     }
+
+
+@router.get("/{session_id}/live-state")
+async def get_live_session_state(session_id: str):
+    """Fetch current live session state and latest authoritative inference snapshot."""
+    from datetime import datetime, timezone
+    session = await orchestrator.session_repo.get_by_id(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    inferences = await orchestrator.inference_repo.get_timeline_for_session(session_id)
+    latest_inf = inferences[-1] if inferences else None
+    interventions = await orchestrator.adaptation_engine.get_session_interventions(session_id)
+    latest_decision = interventions[-1] if interventions else None
+    windows = await orchestrator.window_repo.get_windows_for_session(session_id)
+    latest_window = windows[-1] if windows else None
+
+    inf_dict = latest_inf.model_dump() if latest_inf else None
+    decision_dict = latest_decision.model_dump() if latest_decision else None
+
+    estimate = {
+        "workload": latest_inf.workload.level.value if hasattr(latest_inf.workload.level, "value") else str(latest_inf.workload.level),
+        "workload_value": latest_inf.workload.value,
+        "fatigue": latest_inf.fatigue.level.value if hasattr(latest_inf.fatigue.level, "value") else str(latest_inf.fatigue.level),
+        "fatigue_value": latest_inf.fatigue.value,
+        "engagement": latest_inf.engagement.level.value if hasattr(latest_inf.engagement.level, "value") else str(latest_inf.engagement.level),
+        "engagement_value": latest_inf.engagement.value,
+    } if latest_inf else None
+
+    quality = {
+        "gate": latest_inf.quality_gate.value if hasattr(latest_inf.quality_gate, "value") else str(latest_inf.quality_gate),
+        "confidence": latest_inf.workload.confidence,
+    } if latest_inf else None
+
+    adaptation = {
+        "action": latest_decision.action.value if hasattr(latest_decision.action, "value") else str(latest_decision.action),
+        "status": latest_decision.status.value if hasattr(latest_decision.status, "value") else str(latest_decision.status),
+        "reason": latest_decision.reason,
+        "cooldown_seconds": latest_decision.cooldown_seconds,
+        "intervention_id": latest_decision.id,
+    } if latest_decision else {
+        "action": "NO_ACTION",
+        "status": "UNMODIFIED",
+        "reason": "Workspace unchanged — cognitive load is within your optimal focus zone.",
+        "cooldown_seconds": 120,
+        "intervention_id": None,
+    }
+
+    return {
+        "session_id": session_id,
+        "session_status": session.status.value,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "estimate": estimate,
+        "quality": quality,
+        "adaptation": adaptation,
+        "latest_inference": inf_dict,
+        "latest_decision": decision_dict,
+        "latest_window": latest_window.model_dump() if latest_window else None,
+        "windows_count": len(windows),
+        "provenance": "COMPUTER_BEHAVIOR",
+    }
+
+
+@router.post("/{session_id}/simulate-burst")
+async def simulate_burst(session_id: str, elevated: bool = False):
+    """Live Pitch Accelerator: Ingest a realistic 30s computer behavior burst into the real production pipeline."""
+    req = BrowserTelemetryRequest(
+        platform="leetcode",
+        page_title="Two Sum",
+        difficulty=1.0,
+        typing_interval_mean_ms=480.0 if elevated else 165.0,
+        typing_interval_std_ms=180.0 if elevated else 45.0,
+        backspace_count=12 if elevated else 2,
+        delete_count=3 if elevated else 0,
+        pause_count=6 if elevated else 1,
+        pause_duration_seconds=9.5 if elevated else 1.2,
+        active_time_seconds=15.0,
+        code_run_count=3 if elevated else 1,
+        error_rate=0.40 if elevated else 0.05,
+        context={
+            "schema_version": "1.0.0",
+            "platform": "leetcode",
+            "task": {
+                "task_id": "two-sum",
+                "title": "Two Sum",
+                "difficulty": "Easy",
+                "difficulty_scalar": 1.0,
+                "language": "Python",
+            },
+        },
+    )
+    return await submit_browser_telemetry(session_id, req)

@@ -248,6 +248,20 @@ export const api = {
     return res.json();
   },
 
+  async getLiveSessionState(sessionId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/tasks/${sessionId}/live-state`);
+    if (!res.ok) throw new Error('Failed to fetch live session state');
+    return res.json();
+  },
+
+  async simulateLiveBurst(sessionId: string, elevated: boolean = false): Promise<any> {
+    const res = await fetch(`${API_BASE}/tasks/${sessionId}/simulate-burst?elevated=${elevated}`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to simulate live cadence burst');
+    return res.json();
+  },
+
   async getEvaluationRuns(limit: number = 50): Promise<EvaluationRunRecord[]> {
     const res = await fetch(`${API_BASE}/evaluation/runs?limit=${limit}`);
     if (!res.ok) throw new Error('Failed to fetch evaluation runs');
@@ -369,5 +383,109 @@ export interface ScenarioComparison {
   descriptive_narrative: string;
   scientific_disclaimer: string;
   created_at: string;
+}
+
+export interface LiveSessionState {
+  session_id: string;
+  timestamp: string;
+  event_id?: string;
+  estimate: {
+    workload: string;
+    workload_value: number;
+    fatigue: string;
+    fatigue_value: number;
+    engagement: string;
+    engagement_value: number;
+  } | null;
+  quality: {
+    gate: 'PASS' | 'DEGRADED' | 'INSUFFICIENT';
+    confidence: number;
+  } | null;
+  adaptation: {
+    action: string;
+    status: string;
+    reason: string;
+    cooldown_seconds: number;
+    intervention_id?: string | null;
+  };
+  context: {
+    platform: string;
+    task: string;
+    language?: string;
+    difficulty?: string;
+  };
+  provenance: 'COMPUTER_BEHAVIOR';
+  latest_window?: SignalWindow | null;
+  latest_features?: FeatureVector | null;
+  latest_inference?: InferenceRecord | null;
+}
+
+export function createLiveWebSocket(
+  sessionId: string,
+  onMessage: (data: any) => void,
+  onStatusChange: (status: 'CONNECTED' | 'CONNECTING' | 'DISCONNECTED') => void
+): () => void {
+  let ws: WebSocket | null = null;
+  let isClosedByUser = false;
+  let retryCount = 0;
+  let pingTimer: any = null;
+  let reconnectTimer: any = null;
+
+  const wsUrl = API_BASE.replace(/^http/, 'ws') + `/ws/session/${sessionId}`;
+
+  function connect() {
+    if (isClosedByUser) return;
+    onStatusChange('CONNECTING');
+    try {
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        retryCount = 0;
+        onStatusChange('CONNECTED');
+        pingTimer = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send('PING');
+          }
+        }, 10000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data);
+          onMessage(parsed);
+        } catch (err) {
+          console.debug('[LiveWS] Parse error', err);
+        }
+      };
+
+      ws.onerror = () => {
+        // Error will trigger onclose
+      };
+
+      ws.onclose = () => {
+        clearInterval(pingTimer);
+        onStatusChange('DISCONNECTED');
+        if (!isClosedByUser) {
+          retryCount++;
+          const delay = Math.min(1000 * Math.pow(1.5, retryCount), 10000);
+          reconnectTimer = setTimeout(connect, delay);
+        }
+      };
+    } catch (e) {
+      onStatusChange('DISCONNECTED');
+    }
+  }
+
+  connect();
+
+  return () => {
+    isClosedByUser = true;
+    clearInterval(pingTimer);
+    clearTimeout(reconnectTimer);
+    if (ws) {
+      ws.close();
+      ws = null;
+    }
+  };
 }
 

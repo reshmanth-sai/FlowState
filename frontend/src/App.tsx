@@ -22,6 +22,8 @@ import {
   FeatureVector,
   AdaptationDecision,
   SystemStatus,
+  createLiveWebSocket,
+  LiveSessionState,
 } from './api';
 
 export const App: React.FC = () => {
@@ -150,7 +152,13 @@ export const App: React.FC = () => {
     initApp();
   }, []);
 
-  // Poll timeline periodically for active session
+  // Live Streaming & Telemetry state
+  const [wsStatus, setWsStatus] = useState<'CONNECTED' | 'CONNECTING' | 'DISCONNECTED'>('DISCONNECTED');
+  const [lastLiveUpdate, setLastLiveUpdate] = useState<Date | null>(null);
+  const [cadencePulse, setCadencePulse] = useState(false);
+  const [currentLiveState, setCurrentLiveState] = useState<LiveSessionState | null>(null);
+
+  // Poll timeline periodically for active session (dual-transport fallback)
   const refreshTimeline = async () => {
     if (!activeSession) return;
     try {
@@ -164,12 +172,73 @@ export const App: React.FC = () => {
     }
   };
 
+  // Real-time WebSocket connection to backend live stream
+  useEffect(() => {
+    if (!activeSession) return;
+    let pulseTimer: any = null;
+
+    const cleanupWs = createLiveWebSocket(
+      activeSession.id,
+      (data) => {
+        if (data.type === 'LIVE_SESSION_INIT' || data.type === 'LIVE_SESSION_UPDATE') {
+          // Session Boundary Guard: ignore mismatched session events
+          if (data.session_id && data.session_id !== activeSession.id) {
+            return;
+          }
+
+          setCurrentLiveState(data);
+          setLastLiveUpdate(new Date());
+
+          // Trigger cadence pulse
+          setCadencePulse(true);
+          clearTimeout(pulseTimer);
+          pulseTimer = setTimeout(() => setCadencePulse(false), 1200);
+
+          if (data.latest_inference) {
+            setInferences((prev) => {
+              const exists = prev.some((i) => i.inference_id === data.latest_inference.inference_id);
+              return exists ? prev : [...prev, data.latest_inference];
+            });
+          }
+          if (data.latest_window) {
+            setWindows((prev) => {
+              const exists = prev.some((w) => w.window_id === data.latest_window.window_id);
+              return exists ? prev : [...prev, data.latest_window];
+            });
+          }
+          if (data.latest_features) {
+            setFeatures((prev) => {
+              const exists = prev.some((f) => f.window_id === data.latest_features.window_id);
+              return exists ? prev : [...prev, data.latest_features];
+            });
+          }
+          if (data.latest_decision && data.latest_decision.action !== 'NO_ACTION') {
+            setInterventions((prev) => {
+              const exists = prev.some((d) => d.intervention_id === data.latest_decision.intervention_id);
+              return exists ? prev : [...prev, data.latest_decision];
+            });
+          }
+        }
+      },
+      (status) => {
+        setWsStatus(status);
+      }
+    );
+
+    return () => {
+      cleanupWs();
+      clearTimeout(pulseTimer);
+    };
+  }, [activeSession]);
+
   useEffect(() => {
     if (!activeSession) return;
     refreshTimeline();
-    const interval = setInterval(refreshTimeline, 5000);
+    // Dual transport: If WebSocket is connected, relax polling to 30s; if disconnected, poll every 5s
+    const pollInterval = wsStatus === 'CONNECTED' ? 30000 : 5000;
+    const interval = setInterval(refreshTimeline, pollInterval);
     return () => clearInterval(interval);
-  }, [activeSession]);
+  }, [activeSession, wsStatus]);
 
   const latestInference = inferences.length > 0 ? inferences[inferences.length - 1] : null;
   const latestWindow = windows.length > 0 ? windows[windows.length - 1] : null;
@@ -241,6 +310,15 @@ export const App: React.FC = () => {
               windows={windows}
               latestDecision={latestDecision}
               durationMinutes={durationMinutes}
+              wsStatus={wsStatus}
+              lastLiveUpdate={lastLiveUpdate}
+              cadencePulse={cadencePulse}
+              liveState={currentLiveState}
+              onTriggerDemoBurst={(elevated) => {
+                if (activeSession) {
+                  api.simulateLiveBurst(activeSession.id, elevated);
+                }
+              }}
               onBackToHome={() => navigateTo('home')}
               onNavigateToSignals={() => navigateTo('signals')}
               onNavigateToEvidence={() => navigateTo('evidence')}
