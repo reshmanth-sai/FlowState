@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>1. Two Sum - LeetCode</title>
+</head>
+<body>
+  <div id="app">
+    <div id="problem-view">
+      <div data-cy="question-title">1. Two Sum</div>
+      <div class="text-difficulty-easy">Easy</div>
+      <button id="headlessui-listbox-button-1"><span>Python3</span></button>
+      <button data-e2e-locator="console-run-button">Run</button>
+    </div>
+    <button id="spa-navigate-btn" onclick="navigateToProblemB()">Go to Problem B</button>
+  </div>
+
+  <script>
+    function navigateToProblemB() {
+      history.pushState({}, '', '/problems/add-two-numbers/');
+      document.title = '2. Add Two Numbers - LeetCode';
+      const view = document.getElementById('problem-view');
+      view.innerHTML = `
+        <div data-cy="question-title">2. Add Two Numbers</div>
+        <div class="text-difficulty-medium">Medium</div>
+        <button id="headlessui-listbox-button-1"><span>Java</span></button>
+        <button data-e2e-locator="console-run-button">Run</button>
+      `;
+    }
+  </script>
+</body>
+</html>
