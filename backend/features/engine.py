@@ -85,14 +85,32 @@ class FeatureEngine:
                     if "difficulty" in e.value and e.value["difficulty"] is not None:
                         task_difficulties.append(float(e.value["difficulty"]))
                 elif act == "BROWSER_INTERACTION_BATCH":
-                    runs = int(e.value.get("code_run_count") or 1)
-                    task_completion_count += max(1, runs)
+                    runs = None
+                    if "code_run_count" in e.value and e.value["code_run_count"] is not None:
+                        runs = int(e.value["code_run_count"])
+                    elif "behavior" in e.value and isinstance(e.value["behavior"], dict) and "code_run_count" in e.value["behavior"]:
+                        runs = int(e.value["behavior"]["code_run_count"])
+                    
+                    if runs is not None:
+                        task_completion_count += runs
+                    else:
+                        task_completion_count += 1
+
                     if "typing_interval_mean_ms" in e.value and e.value["typing_interval_mean_ms"] is not None:
                         task_rts.append(float(e.value["typing_interval_mean_ms"]))
+                    elif "behavior" in e.value and isinstance(e.value["behavior"], dict) and e.value["behavior"].get("typing_interval_mean_ms") is not None:
+                        task_rts.append(float(e.value["behavior"]["typing_interval_mean_ms"]))
                     elif "response_time_ms" in e.value and e.value["response_time_ms"] is not None:
                         task_rts.append(float(e.value["response_time_ms"]))
+
+                    err_rate = None
                     if "error_rate" in e.value and e.value["error_rate"] is not None:
-                        task_errors.append(float(e.value["error_rate"]) > 0.2)
+                        err_rate = float(e.value["error_rate"])
+                    elif "behavior" in e.value and isinstance(e.value["behavior"], dict) and e.value["behavior"].get("error_rate") is not None:
+                        err_rate = float(e.value["behavior"]["error_rate"])
+
+                    if err_rate is not None:
+                        task_errors.append(err_rate > 0.2)
                     elif "correct" in e.value and e.value["correct"] is not None:
                         task_errors.append(not bool(e.value["correct"]))
                     
@@ -109,7 +127,10 @@ class FeatureEngine:
                         except (ValueError, TypeError):
                             pass
 
-                    pause_duration_total += float(e.value.get("pause_duration_seconds", 0.0))
+                    pause_secs = e.value.get("pause_duration_seconds")
+                    if pause_secs is None and "behavior" in e.value and isinstance(e.value["behavior"], dict):
+                        pause_secs = e.value["behavior"].get("pause_duration_seconds")
+                    pause_duration_total += float(pause_secs or 0.0)
                 elif act == "PAUSE_DETECTED":
                     pause_duration_total += float(e.value.get("pause_duration_seconds", 0.0))
 

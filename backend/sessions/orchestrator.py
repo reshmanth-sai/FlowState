@@ -106,6 +106,9 @@ class SessionOrchestrator:
         if not session:
             return None
 
+        # Guarantee invariant: Only ONE session can be RUNNING at any given time
+        await self.session_repo.stop_all_running(except_session_id=session_id)
+
         session.status = SessionStatus.RUNNING
         session.started_at = datetime.now(timezone.utc)
         return await self.session_repo.update(session)

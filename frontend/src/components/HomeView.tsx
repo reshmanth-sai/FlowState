@@ -8,6 +8,7 @@ import {
   Sparkles,
   Database,
   ExternalLink,
+  Plus,
 } from 'lucide-react';
 import { Session, InferenceRecord } from '../api';
 
@@ -34,21 +35,21 @@ export const HomeView: React.FC<HomeViewProps> = ({
 }) => {
   // Convert 0-1 metrics to categorical states
   const getWorkloadState = (val?: number) => {
-    if (val === undefined) return { label: 'Moderate', pct: 45, color: '#6366f1' };
+    if (val === undefined) return { label: 'Awaiting signal', pct: 0, color: 'var(--text-muted)' };
     if (val < 0.35) return { label: 'Low', pct: Math.round(val * 100), color: '#10b981' };
     if (val < 0.7) return { label: 'Moderate', pct: Math.round(val * 100), color: '#6366f1' };
     return { label: 'Elevated', pct: Math.round(val * 100), color: '#f59e0b' };
   };
 
   const getFatigueState = (val?: number) => {
-    if (val === undefined) return { label: 'Low', pct: 22, color: '#10b981' };
+    if (val === undefined) return { label: 'Awaiting signal', pct: 0, color: 'var(--text-muted)' };
     if (val < 0.4) return { label: 'Low', pct: Math.round(val * 100), color: '#10b981' };
     if (val < 0.75) return { label: 'Moderate', pct: Math.round(val * 100), color: '#f59e0b' };
     return { label: 'Elevated', pct: Math.round(val * 100), color: '#ef4444' };
   };
 
   const getEngagementState = (val?: number) => {
-    if (val === undefined) return { label: 'High', pct: 85, color: '#10b981' };
+    if (val === undefined) return { label: 'Awaiting signal', pct: 0, color: 'var(--text-muted)' };
     if (val > 0.6) return { label: 'High', pct: Math.round(val * 100), color: '#10b981' };
     if (val > 0.35) return { label: 'Moderate', pct: Math.round(val * 100), color: '#6366f1' };
     return { label: 'Low', pct: Math.round(val * 100), color: '#9ca3af' };
@@ -83,31 +84,54 @@ export const HomeView: React.FC<HomeViewProps> = ({
                     width: '7px',
                     height: '7px',
                     borderRadius: '50%',
-                    background: activeSession ? '#10b981' : 'var(--text-muted)',
+                    background: activeSession && activeSession.status === 'RUNNING' ? '#10b981' : 'var(--text-muted)',
                     display: 'inline-block',
-                    boxShadow: activeSession ? '0 0 8px rgba(16, 185, 129, 0.4)' : 'none',
+                    boxShadow: activeSession && activeSession.status === 'RUNNING' ? '0 0 8px rgba(16, 185, 129, 0.4)' : 'none',
                   }}
                 />
                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  {activeSession ? 'Current Session' : 'No Active Session'}
+                  {activeSession && activeSession.status === 'RUNNING' ? 'Current Session' : 'No Active Session'}
                 </span>
               </div>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                {activeSession ? `${durationMinutes || 18}m active` : 'Idle'}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                  {activeSession && activeSession.status === 'RUNNING' ? `${durationMinutes ?? 0}m active` : 'Idle'}
+                </span>
+                <button
+                  onClick={onStartNewSession}
+                  data-e2e="header-start-new-session-button"
+                  title="Start a fresh FlowState session"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '3px 9px',
+                    background: 'var(--bay-elevated)',
+                    color: 'var(--laser-violet)',
+                    border: '1px solid var(--laser-violet)',
+                    borderRadius: '4px',
+                    fontSize: '0.74rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Plus size={12} />
+                  <span>+ New Session</span>
+                </button>
+              </div>
             </div>
 
             {activeSession ? (
               <div>
                 <div style={{ fontSize: '1.45rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.02em' }}>
-                  Two Sum
+                  {activeSession.metadata?.task_name || activeSession.task_id || 'Active Focus Session'}
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span>LeetCode</span>
+                  <span style={{ textTransform: 'capitalize' }}>{activeSession.metadata?.platform || 'Browser Context'}</span>
                   <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-                  <span>Easy</span>
+                  <span>{activeSession.metadata?.difficulty || 'Standard Task'}</span>
                   <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-                  <span style={{ color: '#10b981' }}>Python</span>
+                  <span style={{ color: '#10b981' }}>{activeSession.metadata?.language || 'Interaction'}</span>
                 </div>
 
                 {/* Cohesive State Composition */}
@@ -151,36 +175,85 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             ) : (
               <div style={{ padding: '1.5rem 0', textAlign: 'center' }}>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                  Start a Flowstate session or browse LeetCode with the Chrome Extension to begin observing interaction patterns.
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1rem' }}>
+                  No session currently running. Start a fresh session to begin recording telemetry.
                 </p>
+                <button
+                  onClick={onStartNewSession}
+                  data-e2e="empty-start-new-session-button"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 18px',
+                    background: 'var(--laser-violet)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Plus size={15} />
+                  <span>+ New Session</span>
+                </button>
               </div>
             )}
           </div>
 
           <div style={{ marginTop: '2rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              Confidence: <strong style={{ color: 'var(--text-main)' }}>82% (Good)</strong> • Behavioral Proxy
+              Confidence:{' '}
+              <strong style={{ color: 'var(--text-main)' }}>
+                {latestInference
+                  ? `${Math.round((latestInference.workload?.confidence ?? 0) * 100)}% (${latestInference.quality_gate === 'PASS' ? 'Good' : latestInference.quality_gate === 'DEGRADED' ? 'Degraded' : 'Limited'})`
+                  : 'Awaiting Telemetry'}
+              </strong>{' '}
+              • Behavioral Proxy
             </div>
-            <button
-              onClick={onContinueSession}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '7px 16px',
-                background: 'var(--laser-violet)',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <span>Open Live Session</span>
-              <ArrowRight size={14} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={onStartNewSession}
+                data-e2e="start-new-session-button"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 14px',
+                  background: 'var(--bay-elevated)',
+                  color: 'var(--text-main)',
+                  border: '1px solid var(--border-hairline)',
+                  borderRadius: '6px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <Plus size={14} />
+                <span>+ New Session</span>
+              </button>
+              <button
+                onClick={onContinueSession}
+                data-e2e="open-live-session-button"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '7px 16px',
+                  background: 'var(--laser-violet)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <span>Open Live Session</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
           </div>
         </div>
 

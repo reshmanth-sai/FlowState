@@ -23,9 +23,11 @@ export class TelemetryCollector {
     }
   }
 
-  reset() {
+  reset(preserveInteractionTime = false) {
     this.windowStartTime = Date.now();
-    this.lastInteractionTime = null;
+    if (!preserveInteractionTime) {
+      this.lastInteractionTime = null;
+    }
     this.keyIntervals = [];
     this.backspaceCount = 0;
     this.deleteCount = 0;
@@ -43,17 +45,36 @@ export class TelemetryCollector {
   attach() {
     if (this._isAttached || typeof window === 'undefined') return;
     window.addEventListener('keydown', this._onKeyDown, { passive: true, capture: true });
+    if (typeof document !== 'undefined') {
+      document.addEventListener('keydown', this._onKeyDown, { passive: true, capture: true });
+    }
     window.addEventListener('scroll', this._onScroll, { passive: true });
-    document.addEventListener('visibilitychange', this._onVisibilityChange, { passive: true });
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', this._onVisibilityChange, { passive: true });
+    }
     this._isAttached = true;
   }
 
   detach() {
     if (!this._isAttached || typeof window === 'undefined') return;
     window.removeEventListener('keydown', this._onKeyDown, { capture: true });
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('keydown', this._onKeyDown, { capture: true });
+    }
     window.removeEventListener('scroll', this._onScroll);
-    document.removeEventListener('visibilitychange', this._onVisibilityChange);
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', this._onVisibilityChange);
+    }
     this._isAttached = false;
+  }
+
+  recordPause(durationMs) {
+    if (!this.isMonitoring) return;
+    this.pauseCount++;
+    this.totalPauseDurationMs += durationMs;
+    if (durationMs > this.longestPauseDurationMs) {
+      this.longestPauseDurationMs = durationMs;
+    }
   }
 
   _isSensitiveElement(element) {
@@ -69,6 +90,13 @@ export class TelemetryCollector {
       return;
     }
 
+    if (event._fsHandled) {
+      return;
+    }
+    try {
+      event._fsHandled = true;
+    } catch (e) {}
+
     // 1. Shield sensitive password or private fields completely
     if (this._isSensitiveElement(event.target)) {
       return;
@@ -80,11 +108,7 @@ export class TelemetryCollector {
     if (this.lastInteractionTime !== null) {
       const delta = now - this.lastInteractionTime;
       if (delta >= this.pauseThresholdMs) {
-        this.pauseCount++;
-        this.totalPauseDurationMs += delta;
-        if (delta > this.longestPauseDurationMs) {
-          this.longestPauseDurationMs = delta;
-        }
+        this.recordPause(delta);
       } else if (delta >= 10 && delta <= 3000) {
         // Natural inter-key interval between 10ms and 3000ms
         this.keyIntervals.push(delta);
@@ -135,6 +159,15 @@ export class TelemetryCollector {
     const now = Date.now();
     const totalActiveWindowSeconds = Math.max(1.0, (now - this.windowStartTime) / 1000.0);
 
+    // Check for ongoing trailing pause prior to harvest (within active session window)
+    if (this.lastInteractionTime !== null) {
+      const delta = now - this.lastInteractionTime;
+      if (delta >= this.pauseThresholdMs && delta < 300000) {
+        this.recordPause(delta);
+        this.lastInteractionTime = now;
+      }
+    }
+
     // Compute inter-key interval stats
     let meanInterval = null;
     let stdInterval = null;
@@ -151,6 +184,10 @@ export class TelemetryCollector {
       }
     }
 
+    // Synchronize activity with context if available
+    const contextActivity = activeContext.activity || (activeContext.context && activeContext.context.activity) || {};
+    const effectiveCodeRuns = Math.max(this.codeRunCount, contextActivity.code_run_count || 0);
+
     // Estimate error rate from backspace ratio or code run errors
     let errorRate = 0.0;
     const totalKeys = this.keyIntervals.length + this.backspaceCount + this.deleteCount;
@@ -158,7 +195,8 @@ export class TelemetryCollector {
       const backspaceRatio = (this.backspaceCount + this.deleteCount) / totalKeys;
       errorRate = Math.min(1.0, Math.round(backspaceRatio * 1.5 * 100) / 100);
     }
-    if (this.lastErrorOutcome) {
+    const lastOutcome = contextActivity.last_outcome;
+    if (this.lastErrorOutcome || lastOutcome === 'WRONG_ANSWER' || lastOutcome === 'RUNTIME_ERROR' || lastOutcome === 'TIME_LIMIT_EXCEEDED') {
       errorRate = Math.max(errorRate, 0.4);
     }
 
@@ -170,7 +208,7 @@ export class TelemetryCollector {
       pause_count: this.pauseCount,
       pause_duration_seconds: Math.round((this.totalPauseDurationMs / 1000.0) * 10) / 10,
       active_time_seconds: Math.round(totalActiveWindowSeconds),
-      code_run_count: this.codeRunCount,
+      code_run_count: effectiveCodeRuns,
       error_rate: errorRate,
       scroll_count: this.scrollEvents,
       visibility_changes: this.visibilityTransitions,
@@ -191,11 +229,15 @@ export class TelemetryCollector {
       activity: {
         active_time_seconds: Math.round(totalActiveWindowSeconds),
         submission_count: 0,
-        code_run_count: this.codeRunCount,
+        code_run_count: effectiveCodeRuns,
         failure_count: 0,
         last_outcome: null,
       },
     });
+
+    if (context && context.activity) {
+      context.activity.code_run_count = effectiveCodeRuns;
+    }
 
     const payload = {
       source_type: 'COMPUTER_BEHAVIOR',
@@ -212,7 +254,7 @@ export class TelemetryCollector {
       pause_count: this.pauseCount,
       pause_duration_seconds: Math.round((this.totalPauseDurationMs / 1000.0) * 10) / 10,
       active_time_seconds: Math.round(totalActiveWindowSeconds),
-      code_run_count: this.codeRunCount,
+      code_run_count: effectiveCodeRuns,
       error_rate: errorRate,
       metadata: {
         longest_pause_seconds: Math.round((this.longestPauseDurationMs / 1000.0) * 10) / 10,
@@ -223,8 +265,8 @@ export class TelemetryCollector {
       }
     };
 
-    // Reset accumulators for next interval
-    this.reset();
+    // Reset accumulators for next interval while preserving continuous interaction timestamp
+    this.reset(true);
     return payload;
   }
 }

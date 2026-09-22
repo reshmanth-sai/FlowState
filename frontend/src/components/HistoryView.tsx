@@ -107,220 +107,105 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
 
       {/* Session Cards List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Active LeetCode Session */}
-        <div
-          onClick={() => {
-            if (activeSession) setSelectedSessionForReview(activeSession);
-          }}
-          className="calm-panel"
-          style={{
-            cursor: 'pointer',
-            borderLeft: '3px solid #10b981',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '8px',
-                background: 'var(--bay-elevated)',
-                border: '1px solid var(--border-hairline)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--phosphor-jade)',
-              }}
-            >
-              <CheckCircle size={20} />
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                  Two Sum
-                </span>
-                <span className="badge-chip badge-pass">ACTIVE • 69 WINDOWS</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>LeetCode</span>
-                <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-                <span>Easy Difficulty</span>
-                <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-                <span>Python</span>
-                <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-                <span>Today</span>
-              </div>
-            </div>
+        {sessions.length === 0 ? (
+          <div className="calm-panel" style={{ textAlign: 'center', padding: '2rem' }}>
+            <p style={{ color: 'var(--text-secondary)' }}>No sessions found in storage.</p>
           </div>
+        ) : (
+          sessions.map((s) => {
+            const isActive = activeSession?.id === s.id;
+            const isRunning = s.status === 'RUNNING';
+            const dateStr = s.started_at
+              ? new Date(s.started_at).toLocaleString()
+              : s.created_at
+              ? new Date(s.created_at).toLocaleString()
+              : 'Unknown time';
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Observed Duration
-              </div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
-                17m 30s
-              </div>
-            </div>
+            return (
+              <div
+                key={s.id}
+                onClick={() => {
+                  onSelectSession(s);
+                  setSelectedSessionForReview(s);
+                }}
+                className="calm-panel"
+                style={{
+                  cursor: 'pointer',
+                  borderLeft: isActive
+                    ? '4px solid #10b981'
+                    : isRunning
+                    ? '4px solid var(--laser-violet)'
+                    : '4px solid var(--border-hairline)',
+                  background: isActive ? 'var(--bay-elevated)' : undefined,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  transition: 'background 0.15s ease',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '8px',
+                      background: 'var(--bay-elevated)',
+                      border: '1px solid var(--border-hairline)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: isRunning ? 'var(--phosphor-jade)' : 'var(--text-muted)',
+                    }}
+                  >
+                    {isRunning ? <CheckCircle size={20} /> : <Clock size={20} />}
+                  </div>
 
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Trajectory
-              </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--phosphor-jade)', fontWeight: 500 }}>
-                Moderate → Stable
-              </div>
-            </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
+                        {s.id}
+                      </span>
+                      {isActive && <span className="badge-chip badge-pass">ACTIVE IN UI</span>}
+                      <span className={`badge-chip ${isRunning ? 'badge-pass' : 'badge-neutral'}`}>
+                        {s.status}
+                      </span>
+                      <span className="badge-chip badge-neutral">{s.mode}</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>Participant: {s.participant_key}</span>
+                      <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
+                      <span>Task: {s.task_id}</span>
+                      <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
+                      <span>{dateStr}</span>
+                    </div>
+                  </div>
+                </div>
 
-            <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
-          </div>
-        </div>
-
-        {/* Mock Session 2 */}
-        <div
-          onClick={() => {
-            if (activeSession) setSelectedSessionForReview(activeSession);
-          }}
-          className="calm-panel"
-          style={{
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            opacity: 0.85,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '8px',
-                background: 'var(--bay-elevated)',
-                border: '1px solid var(--border-hairline)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--laser-violet)',
-              }}
-            >
-              <Clock size={20} />
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                  FastAPI Engine Refactor
-                </span>
-                <span className="badge-chip badge-neutral">SAVED</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectSession(s);
+                    }}
+                    style={{
+                      padding: '5px 12px',
+                      borderRadius: '5px',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: '1px solid var(--border-hairline)',
+                      background: isActive ? 'var(--phosphor-jade)' : 'var(--bay-elevated)',
+                      color: isActive ? '#0a0c10' : 'var(--text-main)',
+                    }}
+                  >
+                    {isActive ? 'Active' : 'Select'}
+                  </button>
+                  <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
+                </div>
               </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>GitHub</span>
-                <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-                <span>Code Architecture</span>
-                <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-                <span>Today</span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Observed Duration
-              </div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
-                47m 15s
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Trajectory
-              </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--laser-violet)', fontWeight: 500 }}>
-                Elevated → Focus Active
-              </div>
-            </div>
-
-            <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
-          </div>
-        </div>
-
-        {/* Mock Session 3 */}
-        <div
-          onClick={() => {
-            if (activeSession) setSelectedSessionForReview(activeSession);
-          }}
-          className="calm-panel"
-          style={{
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            opacity: 0.75,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '8px',
-                background: 'var(--bay-elevated)',
-                border: '1px solid var(--border-hairline)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <Clock size={20} />
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                  Binary Search Trees
-                </span>
-                <span className="badge-chip badge-neutral">COMPLETED</span>
-              </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>LeetCode</span>
-                <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-                <span>Medium Difficulty</span>
-                <span style={{ color: 'var(--border-hairline-bright)' }}>•</span>
-                <span>Yesterday</span>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Observed Duration
-              </div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)', fontFamily: 'var(--font-mono)' }}>
-                32m 00s
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Trajectory
-              </div>
-              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                Low → Moderate
-              </div>
-            </div>
-
-            <ChevronRight size={18} style={{ color: 'var(--text-muted)' }} />
-          </div>
-        </div>
+            );
+          })
+        )}
       </div>
     </div>
   );

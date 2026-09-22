@@ -977,11 +977,23 @@ p {
    Progressive Disclosure • Generous Whitespace • Zero Visual Clutter
    ========================================================================== */
 
-.product-app-layout {
+.product-app-layout,
+.product-app-shell {
   display: flex;
   min-height: 100vh;
+  width: 100%;
   background: var(--canvas-bg);
   color: var(--text-main);
+  overflow: hidden;
+}
+
+.product-main-bay {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  min-width: 0;
 }
 
 /* Persistent Calm Sidebar */

@@ -48,10 +48,10 @@ export const FocusModeOverlay: React.FC<FocusModeOverlayProps> = ({
 
         <div>
           <div style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--text-main)', letterSpacing: '-0.03em' }}>
-            {taskTitle || 'Two Sum'}
+            {taskTitle || 'Active Focus Session'}
           </div>
           <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
-            LeetCode • {durationMinutes || 18}m in flow
+            {durationMinutes ?? 0}m in flow
           </div>
         </div>
 

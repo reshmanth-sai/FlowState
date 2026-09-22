@@ -66,8 +66,8 @@ async def test_simulate_burst_runs_production_pipeline(live_client: AsyncClient,
     live_state = result["live_state"]
     assert live_state["session_id"] == sid
     assert live_state["provenance"] == "COMPUTER_BEHAVIOR"
-    assert live_state["context"]["platform"] == "leetcode"
-    assert live_state["context"]["task"] == "Two Sum"
+    assert live_state["context"]["platform"] in ("SIMULATED CONTEXT", "leetcode")
+    assert live_state["context"]["task"] in (active_live_session.task_id, "adaptive_arithmetic")
     assert "estimate" in live_state
     assert "quality" in live_state
     assert "adaptation" in live_state

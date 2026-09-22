@@ -81,21 +81,21 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
 
   // Categorical mappings
   const getWorkloadState = (val?: number) => {
-    if (val === undefined) return { label: 'Moderate', pct: 54, index: '0.54', color: '#6366f1' };
+    if (val === undefined) return { label: 'Awaiting signal', pct: 0, index: '--', color: 'var(--text-muted)' };
     if (val < 0.35) return { label: 'Low', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--phosphor-jade)' };
     if (val < 0.7) return { label: 'Moderate', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--laser-violet)' };
     return { label: 'Elevated', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--amber-alert)' };
   };
 
   const getFatigueState = (val?: number) => {
-    if (val === undefined) return { label: 'Low', pct: 24, index: '0.24', color: 'var(--phosphor-jade)' };
+    if (val === undefined) return { label: 'Awaiting signal', pct: 0, index: '--', color: 'var(--text-muted)' };
     if (val < 0.4) return { label: 'Low', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--phosphor-jade)' };
     if (val < 0.75) return { label: 'Moderate', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--amber-alert)' };
     return { label: 'Elevated', pct: Math.round(val * 100), index: val.toFixed(2), color: '#ef4444' };
   };
 
   const getEngagementState = (val?: number) => {
-    if (val === undefined) return { label: 'High', pct: 88, index: '0.88', color: 'var(--phosphor-jade)' };
+    if (val === undefined) return { label: 'Awaiting signal', pct: 0, index: '--', color: 'var(--text-muted)' };
     if (val > 0.6) return { label: 'High', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--phosphor-jade)' };
     if (val > 0.35) return { label: 'Moderate', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--laser-violet)' };
     return { label: 'Low', pct: Math.round(val * 100), index: val.toFixed(2), color: 'var(--text-muted)' };
@@ -126,16 +126,19 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
     };
   });
 
-  const taskPlatform = liveState?.context?.platform || 'LeetCode';
-  const taskTitle = liveState?.context?.task || 'Two Sum';
-  const taskLang = liveState?.context?.language || 'Python';
-  const taskDiff = liveState?.context?.difficulty || 'Easy Difficulty';
+  const taskTitle = liveState?.context?.task || activeSession?.metadata?.task_name || activeSession?.task_id || 'Active Focus Session';
+  const taskPlatform = liveState?.context?.platform || activeSession?.metadata?.platform || 'Workspace Context';
+  const taskLang = liveState?.context?.language || activeSession?.metadata?.language || 'Interactive';
+  const taskDiff = liveState?.context?.difficulty || activeSession?.metadata?.difficulty || 'Standard';
 
   const hasOfferedAdaptation =
     latestDecision &&
     latestDecision.status === 'OFFERED' &&
     latestDecision.action !== 'NO_ACTION' &&
     !adaptationDismissed;
+
+  // Required Audit Debug Log
+  console.log("[FLOWSTATE UI INFERENCE]", JSON.stringify(latestInference, null, 2));
 
   return (
     <div className="product-container">
@@ -370,6 +373,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
 
             <button
               onClick={() => setShowEndModal(true)}
+              data-e2e="end-session-button"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -455,8 +459,24 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
 
           {/* Decoupled Estimate Quality */}
           <div className="estimate-quality-box">
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
-            <span>Estimate quality: <strong style={{ color: 'var(--text-main)' }}>Good (82%)</strong></span>
+            <span
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                background: latestInference
+                  ? (latestInference.quality_gate === 'PASS' ? '#10b981' : latestInference.quality_gate === 'DEGRADED' ? 'var(--amber-alert)' : '#ef4444')
+                  : 'var(--text-muted)',
+              }}
+            />
+            <span>
+              Estimate quality:{' '}
+              <strong style={{ color: 'var(--text-main)' }}>
+                {latestInference
+                  ? `${latestInference.quality_gate === 'PASS' ? 'Good' : latestInference.quality_gate === 'DEGRADED' ? 'Degraded' : 'Limited'} (${Math.round((latestInference.workload?.confidence ?? 0) * 100)}%)`
+                  : 'Awaiting Telemetry'}
+              </strong>
+            </span>
             <button onClick={() => setShowQualityDrawer(true)}>Why?</button>
           </div>
         </div>
@@ -478,7 +498,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
               <div className="calm-progress-bar calm-progress-violet" style={{ width: `${workload.pct}%` }} />
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              ↑ slightly higher than session start
+              {latestInference?.evidence?.find(e => e.factor.toLowerCase().includes('latency') || e.factor.toLowerCase().includes('response'))?.attribution_text || (latestInference ? 'Behavioral response latency' : 'Awaiting keystroke signals')}
             </div>
           </div>
 
@@ -497,7 +517,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
               <div className="calm-progress-bar calm-progress-emerald" style={{ width: `${fatigue.pct}%` }} />
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              → steady baseline level
+              {latestInference?.evidence?.find(e => e.factor.toLowerCase().includes('fatigue') || e.factor.toLowerCase().includes('time'))?.attribution_text || (latestInference ? 'Time-on-task & pause dispersion' : 'Awaiting activity data')}
             </div>
           </div>
 
@@ -516,7 +536,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
               <div className="calm-progress-bar calm-progress-emerald" style={{ width: `${engagement.pct}%` }} />
             </div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-              ● consistent typing flow
+              {latestInference?.evidence?.find(e => e.factor.toLowerCase().includes('rhythm') || e.factor.toLowerCase().includes('throughput'))?.attribution_text || (latestInference ? 'Active interaction rhythm' : 'Awaiting keystroke signals')}
             </div>
           </div>
         </div>
@@ -530,12 +550,13 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             Flowstate Observation
           </div>
           <p style={{ fontSize: '0.95rem', color: 'var(--text-main)', lineHeight: 1.55 }}>
-            Your interaction pattern has remained relatively stable throughout this window. Attentional
-            focus and typing cadence are well within normal operating bounds.
+            {latestInference?.evidence && latestInference.evidence.length > 0
+              ? latestInference.evidence.map(e => e.attribution_text).join('. ') + '.'
+              : 'Interaction cadence and telemetry are monitored in real time across rolling observation windows.'}
           </p>
           <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-hairline)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Factor: Sustained interaction rhythm
+              Factor: {latestInference?.evidence?.[0]?.factor || 'Continuous behavioral telemetry'}
             </span>
             <button
               onClick={onNavigateToEvidence}
@@ -663,6 +684,7 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
                   setShowEndModal(false);
                   onEndSession();
                 }}
+                data-e2e="confirm-end-session-button"
                 style={{
                   padding: '6px 14px',
                   background: '#ef4444',

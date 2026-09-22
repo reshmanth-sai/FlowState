@@ -20,10 +20,10 @@ export const EstimateQualityDrawer: React.FC<EstimateQualityDrawerProps> = ({
   if (!isOpen) return null;
 
   const confidenceScore =
-    latestInference?.workload.confidence ??
-    latestInference?.fatigue.confidence ??
-    0.82;
-  const confidencePercent = Math.round(confidenceScore * 100);
+    latestInference?.workload?.confidence ??
+    latestInference?.fatigue?.confidence ??
+    (latestInference ? 0.5 : null);
+  const confidencePercent = confidenceScore !== null ? Math.round(confidenceScore * 100) : 0;
 
   return (
     <div className="why-drawer-backdrop" onClick={onClose}>
@@ -69,15 +69,21 @@ export const EstimateQualityDrawer: React.FC<EstimateQualityDrawerProps> = ({
                   width: '8px',
                   height: '8px',
                   borderRadius: '50%',
-                  background: confidenceScore >= 0.6 ? '#10b981' : '#f59e0b',
+                  background: confidenceScore === null ? 'var(--text-muted)' : confidenceScore >= 0.7 ? '#10b981' : confidenceScore >= 0.45 ? 'var(--amber-alert)' : '#ef4444',
                 }}
               />
               <span style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-main)' }}>
-                {confidenceScore >= 0.7 ? 'Good Quality' : 'Limited Confidence'}
+                {latestInference
+                  ? latestInference.quality_gate === 'PASS'
+                    ? 'Good Quality'
+                    : latestInference.quality_gate === 'DEGRADED'
+                    ? 'Degraded Confidence'
+                    : 'Limited Confidence'
+                  : 'Awaiting Telemetry'}
               </span>
             </div>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: '1.1rem', fontWeight: 700, color: 'var(--laser-violet)' }}>
-              {confidencePercent}%
+              {confidenceScore !== null ? `${confidencePercent}%` : '--'}
             </span>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem', lineHeight: 1.45 }}>

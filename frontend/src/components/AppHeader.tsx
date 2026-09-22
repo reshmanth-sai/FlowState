@@ -41,7 +41,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
           {activeSession ? (
             <span>
-              Working on <strong style={{ color: 'var(--text-main)' }}>Two Sum</strong> (LeetCode)
+              Working on <strong style={{ color: 'var(--text-main)' }}>{activeSession.metadata?.task_name || activeSession.task_id || 'Active Focus Session'}</strong> ({activeSession.metadata?.platform || 'Workspace Context'})
             </span>
           ) : (
             'Workspace ready'

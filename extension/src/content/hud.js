@@ -28,6 +28,11 @@ export class FlowstateHud {
     if (typeof document === 'undefined') return;
     if (document.getElementById('flowstate-hud-host')) return;
 
+    if (!document.body) {
+      window.addEventListener('DOMContentLoaded', () => this._mount());
+      return;
+    }
+
     this.host = document.createElement('div');
     this.host.id = 'flowstate-hud-host';
     document.body.appendChild(this.host);

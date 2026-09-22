@@ -418,6 +418,7 @@ export interface LiveSessionState {
   latest_window?: SignalWindow | null;
   latest_features?: FeatureVector | null;
   latest_inference?: InferenceRecord | null;
+  latest_decision?: AdaptationDecision | null;
 }
 
 export function createLiveWebSocket(

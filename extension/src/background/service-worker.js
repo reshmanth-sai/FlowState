@@ -28,10 +28,12 @@ async function discoverActiveSession() {
     const sessions = await apiClient.getActiveSessions();
     const running = sessions.find((s) => s.status === 'RUNNING');
     if (running) {
-      activeSessionId = running.id;
-      chrome.storage.local.set({ [FLOWSTATE_CONFIG.STORAGE_KEYS.ACTIVE_SESSION_ID]: activeSessionId });
-      console.log('[Flowstate Worker] Discovered running session:', activeSessionId);
-      broadcastStatus();
+      if (activeSessionId !== running.id) {
+        activeSessionId = running.id;
+        chrome.storage.local.set({ [FLOWSTATE_CONFIG.STORAGE_KEYS.ACTIVE_SESSION_ID]: activeSessionId });
+        console.log('[Flowstate Worker] Discovered/Synced running session:', activeSessionId);
+        broadcastStatus();
+      }
       return activeSessionId;
     }
   } catch (err) {
@@ -42,19 +44,48 @@ async function discoverActiveSession() {
 }
 
 async function ensureSession(autoCreate = false) {
+  // 1. Check for the latest active running session on the backend
+  try {
+    const sessions = await apiClient.getActiveSessions();
+    const latestRunning = sessions.find((s) => s.status === 'RUNNING');
+    if (latestRunning) {
+      if (activeSessionId !== latestRunning.id) {
+        activeSessionId = latestRunning.id;
+        isMonitoring = true;
+        chrome.storage.local.set({ [FLOWSTATE_CONFIG.STORAGE_KEYS.ACTIVE_SESSION_ID]: activeSessionId });
+        console.log('[Flowstate Worker] Converged on latest active running session:', activeSessionId);
+        broadcastStatus();
+      }
+      return activeSessionId;
+    } else {
+      if (activeSessionId) {
+        console.log('[Flowstate Worker] No running sessions found on backend; clearing:', activeSessionId);
+        activeSessionId = null;
+        isMonitoring = false;
+        chrome.storage.local.remove([FLOWSTATE_CONFIG.STORAGE_KEYS.ACTIVE_SESSION_ID]);
+        broadcastStatus();
+      }
+      return null;
+    }
+  } catch (err) {
+    console.warn('[Flowstate Worker] Backend query failed in ensureSession:', err.message);
+  }
+
+  // 2. If no running session returned from recent list, verify current activeSessionId
   if (activeSessionId) {
     const s = await apiClient.getSession(activeSessionId);
     if (s && s.status === 'RUNNING') {
       return activeSessionId;
     }
     // Stale or stopped session
+    console.log('[Flowstate Worker] Session is no longer running:', activeSessionId);
     activeSessionId = null;
+    isMonitoring = false;
     chrome.storage.local.remove([FLOWSTATE_CONFIG.STORAGE_KEYS.ACTIVE_SESSION_ID]);
     broadcastStatus();
   }
-  const discovered = await discoverActiveSession();
-  if (discovered) return discovered;
 
+  // 3. Auto-create if explicitly requested
   if (autoCreate) {
     try {
       const health = await apiClient.getHealth();
@@ -63,6 +94,7 @@ async function ensureSession(autoCreate = false) {
           source: 'chrome_extension',
         });
         activeSessionId = newSession.id;
+        isMonitoring = true;
         chrome.storage.local.set({ [FLOWSTATE_CONFIG.STORAGE_KEYS.ACTIVE_SESSION_ID]: activeSessionId });
         console.log('[Flowstate Worker] Created new dedicated extension session:', activeSessionId);
         broadcastStatus();
@@ -144,6 +176,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         .catch((err) => sendResponse({ status: 'ERROR', message: err.message }));
       return true; // Async response
 
+    case 'FLOWSTATE_SET_ACTIVE_SESSION':
+      if (message.sessionId) {
+        activeSessionId = message.sessionId;
+        isMonitoring = true;
+        chrome.storage.local.set({ [FLOWSTATE_CONFIG.STORAGE_KEYS.ACTIVE_SESSION_ID]: activeSessionId });
+        console.log('[Flowstate Worker] Web App explicitly set active session:', activeSessionId);
+        broadcastStatus();
+        sendResponse({ status: 'OK', sessionId: activeSessionId });
+      } else {
+        activeSessionId = null;
+        isMonitoring = false;
+        chrome.storage.local.remove([FLOWSTATE_CONFIG.STORAGE_KEYS.ACTIVE_SESSION_ID]);
+        console.log('[Flowstate Worker] Web App cleared active session');
+        broadcastStatus();
+        sendResponse({ status: 'OK', sessionId: null });
+      }
+      return true;
+
     case FLOWSTATE_CONFIG.MESSAGES.INTERVENTION_RESPONSE:
       apiClient.submitInterventionFeedback(message.interventionId, message.action)
         .then((res) => sendResponse({ status: 'OK', feedback: res }))
@@ -155,8 +205,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+// Periodic heartbeat discovery to detect when a session is created/started in the web app
+setInterval(() => {
+  ensureSession(false).catch(() => {});
+}, 5000);
+
 async function handleTelemetryBatch(payload) {
-  const sessionId = await ensureSession();
+  // Only route to user-initiated running sessions; do not auto-create from background browsing
+  const sessionId = await ensureSession(false);
   if (!sessionId) {
     return {
       status: 'BUFFERED_OFFLINE',

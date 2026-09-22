@@ -131,19 +131,23 @@ export const App: React.FC = () => {
 
         const list = await fetchSessions();
         const savedId = localStorage.getItem('flowstate_selected_session');
-        const savedSession = list.find((s) => s.id === savedId);
+        const savedSession = list.find((s) => s.id === savedId && s.status === 'RUNNING') || list.find((s) => s.id === savedId);
 
-        if (savedSession) {
-          setActiveSession(savedSession);
-        } else if (list.length > 0) {
-          // Default to the recorded LeetCode session if present
-          const targetSession = list.find((s) => s.id === 'sess_7ef93235c6') || list[0];
+        // Find the latest active running session if any
+        const latestRunningSession = list.find((s) => s.status === 'RUNNING');
+        const targetSession = savedSession || latestRunningSession || list[0];
+
+        if (targetSession) {
           setActiveSession(targetSession);
+          localStorage.setItem('flowstate_selected_session', targetSession.id);
+          window.postMessage({ type: 'FLOWSTATE_SET_ACTIVE_SESSION', sessionId: targetSession.id }, '*');
         } else {
-          const sess = await api.createSession('reviewer_session', 'SIMULATED');
-          await api.startSession(sess.id);
-          setActiveSession(sess);
-          setAvailableSessions([sess]);
+          const sess = await api.createSession('browser_study_participant', 'SIMULATED');
+          const started = await api.startSession(sess.id);
+          setActiveSession(started);
+          localStorage.setItem('flowstate_selected_session', started.id);
+          setAvailableSessions([started]);
+          window.postMessage({ type: 'FLOWSTATE_SET_ACTIVE_SESSION', sessionId: started.id }, '*');
         }
       } catch (err) {
         console.error('Failed to initialize app', err);
@@ -151,6 +155,14 @@ export const App: React.FC = () => {
     };
     initApp();
   }, []);
+
+  // Broadcast active session updates to any injected extension scripts
+  useEffect(() => {
+    if (activeSession) {
+      localStorage.setItem('flowstate_selected_session', activeSession.id);
+      window.postMessage({ type: 'FLOWSTATE_SET_ACTIVE_SESSION', sessionId: activeSession.id }, '*');
+    }
+  }, [activeSession?.id]);
 
   // Live Streaming & Telemetry state
   const [wsStatus, setWsStatus] = useState<'CONNECTED' | 'CONNECTING' | 'DISCONNECTED'>('DISCONNECTED');
@@ -181,6 +193,9 @@ export const App: React.FC = () => {
       activeSession.id,
       (data) => {
         if (data.type === 'LIVE_SESSION_INIT' || data.type === 'LIVE_SESSION_UPDATE') {
+          // Required Audit Debug Log
+          console.log("[FLOWSTATE WS RAW]", JSON.stringify(data, null, 2));
+
           // Session Boundary Guard: ignore mismatched session events
           if (data.session_id && data.session_id !== activeSession.id) {
             return;
@@ -196,26 +211,46 @@ export const App: React.FC = () => {
 
           if (data.latest_inference) {
             setInferences((prev) => {
-              const exists = prev.some((i) => i.inference_id === data.latest_inference.inference_id);
-              return exists ? prev : [...prev, data.latest_inference];
+              const idx = prev.findIndex((i) => i.inference_id === data.latest_inference.inference_id);
+              if (idx >= 0) {
+                const copy = [...prev];
+                copy[idx] = data.latest_inference;
+                return copy;
+              }
+              return [...prev, data.latest_inference];
             });
           }
           if (data.latest_window) {
             setWindows((prev) => {
-              const exists = prev.some((w) => w.window_id === data.latest_window.window_id);
-              return exists ? prev : [...prev, data.latest_window];
+              const idx = prev.findIndex((w) => w.window_id === data.latest_window.window_id);
+              if (idx >= 0) {
+                const copy = [...prev];
+                copy[idx] = data.latest_window;
+                return copy;
+              }
+              return [...prev, data.latest_window];
             });
           }
           if (data.latest_features) {
             setFeatures((prev) => {
-              const exists = prev.some((f) => f.window_id === data.latest_features.window_id);
-              return exists ? prev : [...prev, data.latest_features];
+              const idx = prev.findIndex((f) => f.window_id === data.latest_features.window_id);
+              if (idx >= 0) {
+                const copy = [...prev];
+                copy[idx] = data.latest_features;
+                return copy;
+              }
+              return [...prev, data.latest_features];
             });
           }
           if (data.latest_decision && data.latest_decision.action !== 'NO_ACTION') {
             setInterventions((prev) => {
-              const exists = prev.some((d) => d.intervention_id === data.latest_decision.intervention_id);
-              return exists ? prev : [...prev, data.latest_decision];
+              const idx = prev.findIndex((d) => d.intervention_id === data.latest_decision.intervention_id);
+              if (idx >= 0) {
+                const copy = [...prev];
+                copy[idx] = data.latest_decision;
+                return copy;
+              }
+              return [...prev, data.latest_decision];
             });
           }
         }
@@ -231,6 +266,13 @@ export const App: React.FC = () => {
     };
   }, [activeSession]);
 
+  // Log React state whenever currentLiveState updates
+  useEffect(() => {
+    if (currentLiveState) {
+      console.log("[FLOWSTATE STATE]", JSON.stringify(currentLiveState, null, 2));
+    }
+  }, [currentLiveState]);
+
   useEffect(() => {
     if (!activeSession) return;
     refreshTimeline();
@@ -240,13 +282,89 @@ export const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [activeSession, wsStatus]);
 
-  const latestInference = inferences.length > 0 ? inferences[inferences.length - 1] : null;
-  const latestWindow = windows.length > 0 ? windows[windows.length - 1] : null;
-  const latestFeatures = features.length > 0 ? features[features.length - 1] : null;
-  const latestDecision = interventions.length > 0 ? interventions[interventions.length - 1] : null;
+  // Authoritative live derivation: Prefer latest real-time WebSocket state, fallback to timeline array
+  const latestInference = currentLiveState?.latest_inference || (inferences.length > 0 ? inferences[inferences.length - 1] : null);
+  const latestWindow = currentLiveState?.latest_window || (windows.length > 0 ? windows[windows.length - 1] : null);
+  const latestFeatures = currentLiveState?.latest_features || (features.length > 0 ? features[features.length - 1] : null);
+  const latestDecision = currentLiveState?.latest_decision || (interventions.length > 0 ? interventions[interventions.length - 1] : null);
 
-  // Approximate duration from windows (each window step is 15s)
-  const durationMinutes = windows.length > 0 ? Math.max(1, Math.round((windows.length * 15) / 60)) : 18;
+  const handleStartNewSession = async () => {
+    try {
+      // 1. If an existing session is RUNNING, stop it
+      if (activeSession && activeSession.status === 'RUNNING') {
+        try {
+          await api.stopSession(activeSession.id);
+        } catch (e) {
+          console.warn('Could not cleanly stop previous active session:', e);
+        }
+      }
+      // Stop any other running sessions to guarantee ONLY ONE running session
+      try {
+        const existing = await api.getSessions(20);
+        for (const s of existing) {
+          if (s.status === 'RUNNING') {
+            try {
+              await api.stopSession(s.id);
+            } catch (err) {
+              console.warn(`Could not stop running session ${s.id}:`, err);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to query sessions to stop running ones:', e);
+      }
+
+      // 2. Create fresh session
+      const sess = await api.createSession('browser_study_participant', 'SIMULATED');
+      // 3. Start it
+      const started = await api.startSession(sess.id);
+      // 4. Set it as activeSession and update localStorage
+      setActiveSession(started);
+      localStorage.setItem('flowstate_selected_session', started.id);
+      // 5. Relay FLOWSTATE_SET_ACTIVE_SESSION
+      window.postMessage({ type: 'FLOWSTATE_SET_ACTIVE_SESSION', sessionId: started.id }, '*');
+      // Clear previous timeline and inferences for clean slate
+      setWindows([]);
+      setFeatures([]);
+      setInferences([]);
+      setInterventions([]);
+      setCurrentLiveState(null);
+      // 6. Refresh session list
+      await fetchSessions();
+    } catch (err) {
+      console.error('Failed to start new session', err);
+    }
+  };
+
+  const handleEndSession = async () => {
+    if (activeSession && activeSession.status === 'RUNNING') {
+      try {
+        const stopped = await api.stopSession(activeSession.id);
+        setActiveSession(stopped);
+        localStorage.removeItem('flowstate_selected_session');
+        window.postMessage({ type: 'FLOWSTATE_SET_ACTIVE_SESSION', sessionId: null }, '*');
+        await fetchSessions();
+      } catch (err) {
+        console.error('Failed to stop session', err);
+      }
+    }
+    try {
+      const existing = await api.getSessions(20);
+      for (const s of existing) {
+        if (s.status === 'RUNNING') {
+          await api.stopSession(s.id).catch(() => {});
+        }
+      }
+    } catch (e) {}
+    navigateTo('history');
+  };
+
+  // Calculate duration from active session start time or aggregated windows
+  const durationMinutes = windows.length > 0
+    ? Math.max(1, Math.round((windows.length * 15) / 60))
+    : (activeSession?.started_at
+        ? Math.max(0, Math.floor((Date.now() - new Date(activeSession.started_at).getTime()) / 60000))
+        : 0);
 
   // Render Public Website if selected
   if (currentView === 'platform') {
@@ -263,8 +381,26 @@ export const App: React.FC = () => {
   }
 
   return (
-    <div className="product-app-layout">
-      {/* 1. Persistent Minimal Sidebar */}
+    <div className="product-app-layout product-app-shell">
+      {/* Universal Command Palette Modal */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onNavigate={(view) => navigateTo(view as ProductView)}
+        onToggleFocus={() => setFocusMode((prev) => !prev)}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+
+      {/* Global Focus Mode Overlay */}
+      <FocusModeOverlay
+        isActive={focusMode}
+        onExit={() => setFocusMode(false)}
+        taskTitle={currentLiveState?.context?.task || activeSession?.metadata?.task_name || activeSession?.task_id || 'Active Focus Session'}
+        durationMinutes={durationMinutes}
+      />
+
+      {/* Persistent Left Navigation Sidebar */}
       <AppSidebar
         currentView={currentView}
         onSelectView={navigateTo}
@@ -272,14 +408,14 @@ export const App: React.FC = () => {
         durationMinutes={durationMinutes}
       />
 
-      {/* 2. Main Viewport */}
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--canvas-bg)' }}>
-        {/* Calm App Header */}
+      {/* Main Execution Bay */}
+      <div className="product-main-bay" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', minWidth: 0 }}>
+        {/* Top Product Header */}
         <AppHeader
           activeSession={activeSession}
           durationMinutes={durationMinutes}
           focusMode={focusMode}
-          onToggleFocus={() => setFocusMode(!focusMode)}
+          onToggleFocus={() => setFocusMode((prev) => !prev)}
           onOpenCommandPalette={() => setCommandPaletteOpen(true)}
           mode={mode}
           theme={theme}
@@ -295,7 +431,7 @@ export const App: React.FC = () => {
               latestInference={latestInference}
               durationMinutes={durationMinutes}
               onContinueSession={() => navigateTo('live')}
-              onStartNewSession={() => navigateTo('live')}
+              onStartNewSession={handleStartNewSession}
               onViewSignals={() => navigateTo('signals')}
               onViewHistory={() => navigateTo('history')}
               onViewEvidence={() => navigateTo('evidence')}
@@ -322,7 +458,7 @@ export const App: React.FC = () => {
               onBackToHome={() => navigateTo('home')}
               onNavigateToSignals={() => navigateTo('signals')}
               onNavigateToEvidence={() => navigateTo('evidence')}
-              onEndSession={() => navigateTo('history')}
+              onEndSession={handleEndSession}
             />
           )}
 
@@ -490,7 +626,7 @@ export const App: React.FC = () => {
       <FocusModeOverlay
         isActive={focusMode}
         onExit={() => setFocusMode(false)}
-        taskTitle="Two Sum"
+        taskTitle={currentLiveState?.context?.task || activeSession?.metadata?.task_name || activeSession?.task_id || 'Active Focus Session'}
         durationMinutes={durationMinutes}
       />
 

@@ -143,7 +143,7 @@ export class LeetCodeAdapter extends BaseContextAdapter {
 
   isMatching() {
     if (typeof window === 'undefined' || !window.location) return false;
-    return window.location.hostname.includes('leetcode.com');
+    return window.location.hostname.includes('leetcode.com') || (window.location.pathname && window.location.pathname.includes('leetcode'));
   }
 
   _attachDomListeners() {

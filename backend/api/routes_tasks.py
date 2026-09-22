@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from backend.domain.models import SourceType, TaskDefinition
+from backend.domain.models import SourceType, TaskDefinition, SessionStatus
 from backend.ingestion.behaviour import BehaviourCollector
 from backend.sessions.orchestrator import SessionOrchestrator
 
@@ -151,6 +151,9 @@ async def submit_browser_telemetry(session_id: str, req: BrowserTelemetryRequest
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    if session.status == SessionStatus.CREATED:
+        session = await orchestrator.start_session(session_id)
+
     payload = {
         "action": "BROWSER_INTERACTION_BATCH",
         "platform": req.platform,
@@ -200,26 +203,45 @@ async def submit_browser_telemetry(session_id: str, req: BrowserTelemetryRequest
     if not decision and active_intervention:
         decision = active_intervention.model_dump()
 
+    session = await orchestrator.session_repo.get_by_id(session_id)
+    default_task_title = (session.metadata or {}).get("task_name") if session else None
+    if not default_task_title and session:
+        default_task_title = session.task_id
+    if not default_task_title:
+        default_task_title = "Active Focus Session"
+
+    default_platform = (session.metadata or {}).get("platform") if session else None
+    if not default_platform:
+        default_platform = req.platform or "Browser Context"
+
+    default_lang = (session.metadata or {}).get("language") if session else None
+    if not default_lang:
+        default_lang = "Interactive"
+
+    default_diff = (session.metadata or {}).get("difficulty") if session else None
+    if not default_diff:
+        default_diff = "Standard"
+
     ctx_task = (req.context or {}).get("task", {}) if req.context else {}
-    task_name = ctx_task.get("title") or req.page_title or "Two Sum"
-    task_lang = ctx_task.get("language") or "Python"
-    task_diff = ctx_task.get("difficulty") or "Easy"
+    task_name = ctx_task.get("title") or req.page_title or default_task_title
+    task_lang = ctx_task.get("language") or default_lang
+    task_diff = ctx_task.get("difficulty") or default_diff
 
     live_state = {
         "session_id": session_id,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "event_id": saved_event.id if saved_event else None,
         "estimate": {
-            "workload": inf["workload"]["level"] if inf else "MODERATE",
-            "workload_value": inf["workload"]["value"] if inf else 0.54,
-            "fatigue": inf["fatigue"]["level"] if inf else "LOW",
-            "fatigue_value": inf["fatigue"]["value"] if inf else 0.24,
-            "engagement": inf["engagement"]["level"] if inf else "HIGH",
-            "engagement_value": inf["engagement"]["value"] if inf else 0.88,
+            "workload": inf["workload"]["level"],
+            "workload_value": inf["workload"]["value"],
+            "fatigue": inf["fatigue"]["level"],
+            "fatigue_value": inf["fatigue"]["value"],
+            "engagement": inf["engagement"]["level"],
+            "engagement_value": inf["engagement"]["value"],
         } if inf else None,
         "quality": {
-            "gate": inf["quality_gate"] if inf else "PASS",
-            "confidence": inf["workload"]["confidence"] if inf else 0.82,
+            "gate": inf["quality_gate"],
+            "confidence": inf["workload"]["confidence"],
         } if inf else None,
         "adaptation": {
             "action": decision["action"] if decision else "NO_ACTION",
@@ -326,9 +348,48 @@ async def get_live_session_state(session_id: str):
 @router.post("/{session_id}/simulate-burst")
 async def simulate_burst(session_id: str, elevated: bool = False):
     """Live Pitch Accelerator: Ingest a realistic 30s computer behavior burst into the real production pipeline."""
+    session = await orchestrator.session_repo.get_by_id(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    events = await orchestrator.event_repo.get_events_for_session(session_id)
+    existing_context = None
+    existing_page_title = None
+    existing_platform = None
+
+    for ev in reversed(events):
+        val = ev.value if isinstance(ev.value, dict) else {}
+        if val.get("context") and isinstance(val["context"], dict) and val["context"].get("task"):
+            existing_context = val["context"]
+            existing_page_title = val.get("page_title")
+            existing_platform = val.get("platform")
+            break
+
+    if existing_context:
+        platform = existing_platform or existing_context.get("platform") or "leetcode"
+        page_title = existing_page_title or (existing_context.get("task") or {}).get("title") or "Active Task"
+        context_payload = existing_context
+    else:
+        task_title = (session.metadata or {}).get("task_name") or session.task_id or "adaptive_arithmetic"
+        platform = (session.metadata or {}).get("platform") or "SIMULATED CONTEXT"
+        difficulty = (session.metadata or {}).get("difficulty") or "Standard"
+        language = (session.metadata or {}).get("language") or "Interactive"
+        page_title = task_title
+        context_payload = {
+            "schema_version": "1.0.0",
+            "platform": platform,
+            "task": {
+                "task_id": session.task_id or "adaptive_arithmetic",
+                "title": task_title,
+                "difficulty": difficulty,
+                "difficulty_scalar": 1.0,
+                "language": language,
+            },
+        }
+
     req = BrowserTelemetryRequest(
-        platform="leetcode",
-        page_title="Two Sum",
+        platform=platform,
+        page_title=page_title,
         difficulty=1.0,
         typing_interval_mean_ms=480.0 if elevated else 165.0,
         typing_interval_std_ms=180.0 if elevated else 45.0,
@@ -339,16 +400,6 @@ async def simulate_burst(session_id: str, elevated: bool = False):
         active_time_seconds=15.0,
         code_run_count=3 if elevated else 1,
         error_rate=0.40 if elevated else 0.05,
-        context={
-            "schema_version": "1.0.0",
-            "platform": "leetcode",
-            "task": {
-                "task_id": "two-sum",
-                "title": "Two Sum",
-                "difficulty": "Easy",
-                "difficulty_scalar": 1.0,
-                "language": "Python",
-            },
-        },
+        context=context_payload,
     )
     return await submit_browser_telemetry(session_id, req)

@@ -162,6 +162,25 @@ class SQLiteSessionRepository(SessionRepository):
         finally:
             conn.close()
 
+    async def stop_all_running(self, except_session_id: Optional[str] = None) -> int:
+        conn = self.db.get_connection()
+        try:
+            now_str = _to_iso(datetime.now(timezone.utc))
+            with conn:
+                if except_session_id:
+                    cursor = conn.execute(
+                        "UPDATE sessions SET status = ?, ended_at = ? WHERE status = ? AND id != ?",
+                        (SessionStatus.STOPPED.value, now_str, SessionStatus.RUNNING.value, except_session_id),
+                    )
+                else:
+                    cursor = conn.execute(
+                        "UPDATE sessions SET status = ?, ended_at = ? WHERE status = ?",
+                        (SessionStatus.STOPPED.value, now_str, SessionStatus.RUNNING.value),
+                    )
+                return cursor.rowcount
+        finally:
+            conn.close()
+
 
 class SQLiteEventRepository(EventRepository):
     def __init__(self, db: DatabaseManager = db_manager):

@@ -7,8 +7,10 @@
     "storage"
   ],
   "host_permissions": [
-    "http://localhost:8000/*",
-    "http://127.0.0.1:8000/*"
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "http://localhost:*/*",
+    "http://127.0.0.1:*/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.js",
@@ -20,7 +22,11 @@
         "https://leetcode.com/*",
         "https://*.leetcode.com/*",
         "https://github.com/*",
-        "https://*.github.com/*"
+        "https://*.github.com/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*"
       ],
       "js": [
         "src/content/loader.js"
@@ -32,13 +38,20 @@
     {
       "resources": [
         "src/*",
+        "src/*/*",
+        "src/content/*",
+        "src/shared/*",
         "src/styles/*"
       ],
       "matches": [
         "https://leetcode.com/*",
         "https://*.leetcode.com/*",
         "https://github.com/*",
-        "https://*.github.com/*"
+        "https://*.github.com/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "http://localhost:*/*",
+        "http://127.0.0.1:*/*"
       ]
     }
   ],

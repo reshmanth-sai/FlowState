@@ -78,10 +78,84 @@ import { FlowstateHud } from './hud.js';
     }
   });
 
+  // Listen for session synchronization messages from Flowstate Web Platform
+  window.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'FLOWSTATE_SET_ACTIVE_SESSION') {
+      if (event.data.sessionId) {
+        activeSessionId = event.data.sessionId;
+        isMonitoring = true;
+        hud.setSession(activeSessionId);
+        hud.setMonitoring(true);
+        telemetryCollector.setMonitoring(true);
+        try {
+          chrome.runtime.sendMessage({
+            type: 'FLOWSTATE_SET_ACTIVE_SESSION',
+            sessionId: event.data.sessionId,
+          });
+        } catch (e) {
+          // Context may be invalidated if extension reloaded
+        }
+      } else {
+        activeSessionId = null;
+        isMonitoring = false;
+        hud.setSession(null);
+        hud.setMonitoring(false);
+        telemetryCollector.setMonitoring(false);
+        try {
+          chrome.runtime.sendMessage({
+            type: 'FLOWSTATE_SET_ACTIVE_SESSION',
+            sessionId: null,
+          });
+        } catch (e) {}
+      }
+    }
+
+    if (event.data && event.data.type === 'FLOWSTATE_FLUSH_TELEMETRY') {
+      const context = contextManager.getActiveContext();
+      hud.setContext(context);
+      const telemetryBatch = telemetryCollector.harvest(context);
+      if (telemetryBatch) {
+        chrome.runtime.sendMessage(
+          {
+            type: FLOWSTATE_CONFIG.MESSAGES.TELEMETRY_BATCH,
+            payload: telemetryBatch,
+          },
+          (response) => {
+            window.postMessage({ type: 'FLOWSTATE_FLUSH_COMPLETED', response }, '*');
+          }
+        );
+      } else {
+        window.postMessage({ type: 'FLOWSTATE_FLUSH_COMPLETED', empty: true }, '*');
+      }
+    }
+
+    if (event.data && event.data.type === 'FLOWSTATE_PING_EXTENSION') {
+      window.postMessage({
+        type: 'FLOWSTATE_PONG_EXTENSION',
+        activeSessionId,
+        isMonitoring,
+        hasHud: !!document.getElementById('flowstate-hud-host'),
+      }, '*');
+    }
+  });
+
   // Periodic Telemetry Harvest & Dispatch (every 15s)
   setInterval(async () => {
-    // Dormant Idle Invariant: Never harvest or transmit when monitoring is inactive
+    // If not currently monitoring, re-query service worker in case a session started
     if (!activeSessionId || !isMonitoring) {
+      try {
+        chrome.runtime.sendMessage({ type: FLOWSTATE_CONFIG.MESSAGES.GET_STATUS }, (res) => {
+          if (res && res.sessionId) {
+            activeSessionId = res.sessionId;
+            isMonitoring = !!res.isMonitoring;
+            hud.setSession(activeSessionId);
+            hud.setMonitoring(isMonitoring);
+            telemetryCollector.setMonitoring(isMonitoring);
+          }
+        });
+      } catch (e) {
+        // Worker waking up
+      }
       return;
     }
 
@@ -114,9 +188,8 @@ import { FlowstateHud } from './hud.js';
               hud.updateState(response.latestInference, response.activeIntervention);
             }
           } else if (response && response.status === 'BUFFERED_OFFLINE') {
-            isMonitoring = false;
-            hud.setMonitoring(false);
-            telemetryCollector.setMonitoring(false);
+            // Keep HUD informed but do not permanently disable the collector
+            hud.setGathering(true);
           }
         }
       );

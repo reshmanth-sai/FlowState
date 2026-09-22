@@ -40,6 +40,10 @@ class SessionRepository(ABC):
     async def list_recent(self, limit: int = 50) -> List[Session]:
         pass
 
+    @abstractmethod
+    async def stop_all_running(self, except_session_id: Optional[str] = None) -> int:
+        pass
+
 
 class EventRepository(ABC):
     @abstractmethod
