@@ -14,6 +14,8 @@ export const FLOWSTATE_CONFIG = {
     API_BASE: 'flowstate_api_base',
     MONITORING_ENABLED: 'flowstate_monitoring_enabled',
     HUD_EXPANDED: 'flowstate_hud_expanded',
+    HUD_CORNER: 'flowstate_hud_corner',
+    ZEN_FOCUS: 'flowstate_zen_focus',
   },
   MESSAGES: {
     GET_STATUS: 'FLOWSTATE_GET_STATUS',
@@ -22,6 +24,7 @@ export const FLOWSTATE_CONFIG = {
     TELEMETRY_BATCH: 'FLOWSTATE_TELEMETRY_BATCH',
     INTERVENTION_RESPONSE: 'FLOWSTATE_INTERVENTION_RESPONSE',
     STATUS_UPDATE: 'FLOWSTATE_STATUS_UPDATE',
+    TOGGLE_ZEN_FOCUS: 'FLOWSTATE_TOGGLE_ZEN_FOCUS',
   },
   QUALITY_GATES: {
     PASS: 'PASS',
@@ -31,6 +34,7 @@ export const FLOWSTATE_CONFIG = {
   SUPPORTED_DOMAINS: [
     'leetcode.com',
     'github.com',
+    'colab.research.google.com',
     'localhost',
     '127.0.0.1'
   ],

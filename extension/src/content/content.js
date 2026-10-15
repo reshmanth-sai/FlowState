@@ -22,6 +22,31 @@ import { FlowstateHud } from './hud.js';
   let activeSessionId = null;
   let isMonitoring = false;
 
+  function toggleZenClutterReducer(enabled) {
+    const styleId = 'flowstate-zen-style';
+    let styleEl = document.getElementById(styleId);
+    if (enabled) {
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        styleEl.textContent = `
+          /* Flowstate Ambient Zen Focus Filter */
+          .discussion-container, .adsbygoogle, #ad-placeholder,
+          .recommended-questions, [data-track-load="description_tab_discussion"],
+          .Layout-sidebar, .feed-item, .aside-container {
+            opacity: 0.12 !important;
+            filter: blur(1.5px) !important;
+            pointer-events: none !important;
+            transition: all 0.4s ease !important;
+          }
+        `;
+        document.head.appendChild(styleEl);
+      }
+    } else {
+      if (styleEl) styleEl.remove();
+    }
+  }
+
   // Initialize HUD only on authorized, supported domain
   const hud = new FlowstateHud({
     onInterventionResponse: (interventionId, userAction) => {
@@ -31,6 +56,7 @@ import { FlowstateHud } from './hud.js';
         action: userAction,
       });
     },
+    onToggleZenFocus: toggleZenClutterReducer,
   });
 
   const contextManager = new ContextManager({
@@ -115,6 +141,7 @@ import { FlowstateHud } from './hud.js';
       hud.setContext(context);
       const telemetryBatch = telemetryCollector.harvest(context);
       if (telemetryBatch) {
+        hud.setHarvestedTelemetry(telemetryBatch);
         chrome.runtime.sendMessage(
           {
             type: FLOWSTATE_CONFIG.MESSAGES.TELEMETRY_BATCH,
@@ -165,6 +192,7 @@ import { FlowstateHud } from './hud.js';
     if (!telemetryBatch) {
       return;
     }
+    hud.setHarvestedTelemetry(telemetryBatch);
 
     // Send aggregate batch to background worker
     try {

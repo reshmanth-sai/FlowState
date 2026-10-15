@@ -18,6 +18,7 @@ import { AdaptationStatusCard } from './AdaptationStatusCard';
 interface LiveSessionViewProps {
   activeSession: Session | null;
   latestInference: InferenceRecord | null;
+  inferences?: InferenceRecord[];
   windows: SignalWindow[];
   latestDecision?: AdaptationDecision | null;
   durationMinutes: number;
@@ -35,6 +36,7 @@ interface LiveSessionViewProps {
 export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
   activeSession,
   latestInference,
+  inferences = [],
   windows,
   latestDecision,
   durationMinutes,
@@ -112,6 +114,41 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
     const y = 40 - Math.min(32, Math.max(8, count * 1.5));
     return `${x},${y}`;
   }).join(' ');
+
+  // Rolling sparkline historical values for the 3 state cards
+  const rollingInferences = (inferences.length > 0 ? inferences : latestInference ? [latestInference] : []).slice(-12);
+  const workloadHistory = rollingInferences.map(inf => inf.workload?.value ?? 0);
+  const fatigueHistory = rollingInferences.map(inf => inf.fatigue?.value ?? 0);
+  const engagementHistory = rollingInferences.map(inf => inf.engagement?.value ?? 0);
+
+  const renderStateSparkline = (values: number[], strokeColor: string, fillColor: string) => {
+    if (values.length < 2) return null;
+    const w = 180;
+    const h = 26;
+    const min = 0;
+    const max = 1;
+    const pts = values.map((v, i) => {
+      const x = (i / (values.length - 1)) * w;
+      const y = h - Math.max(3, Math.min(h - 3, ((v - min) / (max - min)) * (h - 6) + 3));
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+    const polylinePts = pts.join(' ');
+    const areaPts = `0,${h} ${polylinePts} ${w},${h}`;
+    const lastPt = pts[pts.length - 1].split(',');
+    return (
+      <div style={{ marginTop: '8px', paddingTop: '4px', borderTop: '1px dashed var(--border-hairline)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+          <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>TREND (LAST {values.length} OBS)</span>
+          <span style={{ fontSize: '0.62rem', color: strokeColor, fontWeight: 700 }}>LIVE</span>
+        </div>
+        <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ overflow: 'visible', display: 'block' }}>
+          <polygon points={areaPts} fill={fillColor} />
+          <polyline points={polylinePts} fill="none" stroke={strokeColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx={lastPt[0]} cy={lastPt[1]} r="3" fill={strokeColor} />
+        </svg>
+      </div>
+    );
+  };
 
   // Live timeline recent ticks (bounded rolling window of last 6 observations)
   const recentTimeline = windows.slice(-6).map((win, idx) => {
@@ -497,7 +534,8 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             <div className="calm-progress-track">
               <div className="calm-progress-bar calm-progress-violet" style={{ width: `${workload.pct}%` }} />
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {renderStateSparkline(workloadHistory, workload.color, 'rgba(147, 51, 234, 0.12)')}
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
               {latestInference?.evidence?.find(e => e.factor.toLowerCase().includes('latency') || e.factor.toLowerCase().includes('response'))?.attribution_text || (latestInference ? 'Behavioral response latency' : 'Awaiting keystroke signals')}
             </div>
           </div>
@@ -516,7 +554,8 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             <div className="calm-progress-track">
               <div className="calm-progress-bar calm-progress-emerald" style={{ width: `${fatigue.pct}%` }} />
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {renderStateSparkline(fatigueHistory, fatigue.color, 'rgba(245, 158, 11, 0.12)')}
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
               {latestInference?.evidence?.find(e => e.factor.toLowerCase().includes('fatigue') || e.factor.toLowerCase().includes('time'))?.attribution_text || (latestInference ? 'Time-on-task & pause dispersion' : 'Awaiting activity data')}
             </div>
           </div>
@@ -535,7 +574,8 @@ export const LiveSessionView: React.FC<LiveSessionViewProps> = ({
             <div className="calm-progress-track">
               <div className="calm-progress-bar calm-progress-emerald" style={{ width: `${engagement.pct}%` }} />
             </div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+            {renderStateSparkline(engagementHistory, engagement.color, 'rgba(16, 185, 129, 0.12)')}
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
               {latestInference?.evidence?.find(e => e.factor.toLowerCase().includes('rhythm') || e.factor.toLowerCase().includes('throughput'))?.attribution_text || (latestInference ? 'Active interaction rhythm' : 'Awaiting keystroke signals')}
             </div>
           </div>

@@ -46,10 +46,12 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# SQLite temp & WAL files (keep main .db for local demo reproducibility)
+# SQLite database files
+*.db
 *.db-wal
 *.db-shm
 *.db-journal
+flowstate.db
 
 # OS generated files
 .DS_Store

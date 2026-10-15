@@ -361,12 +361,87 @@ export class GitHubAdapter extends BaseContextAdapter {
 }
 
 /**
+ * Google Colab Context Adapter:
+ * Observes data science / ML coding workflows on colab.research.google.com.
+ * Invariant: Never scrapes cell source code, model weights, or output text.
+ */
+export class ColabContextAdapter extends BaseContextAdapter {
+  constructor() {
+    super('colab');
+    this._attachCellRunObserver();
+  }
+
+  isMatching() {
+    if (typeof window === 'undefined' || !window.location) return false;
+    return window.location.hostname.includes('colab.research.google.com');
+  }
+
+  _attachCellRunObserver() {
+    if (typeof window === 'undefined') return;
+    // Passive listener for cell execution shortcuts (Shift+Enter or Ctrl+Enter)
+    window.addEventListener('keydown', (e) => {
+      if ((e.shiftKey || e.ctrlKey) && e.key === 'Enter') {
+        this.recordCodeRun();
+      }
+    }, { passive: true, capture: true });
+  }
+
+  getContext() {
+    const rawTitle = typeof document !== 'undefined' ? document.title : '';
+    const pageTitle = sanitizeTitle(rawTitle.replace(/- Colab(oratory)?/i, ''));
+    const activeSeconds = Math.max(0, Math.round((Date.now() - this.taskStartTime) / 1000));
+
+    // Check for execution error alerts without reading the traceback text
+    let hasErrorAlert = false;
+    if (typeof document !== 'undefined') {
+      const errorIndicator = document.querySelector('.error, .cell-execution-error, [data-error="true"], colab-run-button[aria-label*="Error"]');
+      if (errorIndicator) {
+        hasErrorAlert = true;
+      }
+    }
+
+    const contextObj = {
+      context_schema_version: FLOWSTATE_CONFIG.CONTEXT_SCHEMA_VERSION,
+      platform: this.platformName,
+      task: {
+        type: 'notebook_computation',
+        difficulty: 'Interactive',
+        difficulty_scalar: 2.0,
+        title: pageTitle || 'Colab Notebook',
+        language: 'Python',
+      },
+      activity: {
+        active_time_seconds: activeSeconds,
+        submission_count: 0,
+        code_run_count: this.codeRunCount,
+        failure_count: hasErrorAlert ? 1 : 0,
+        last_outcome: hasErrorAlert ? 'RUNTIME_ERROR' : (this.codeRunCount > 0 ? 'EXECUTED' : null),
+      },
+    };
+
+    return {
+      ...contextObj,
+      platform: this.platformName,
+      hostname: typeof window !== 'undefined' && window.location ? window.location.hostname : 'colab.research.google.com',
+      page_title: pageTitle || 'Colab Notebook',
+      difficulty: 2.0,
+      metadata: {
+        adapter: 'ColabContextAdapter',
+        language: 'Python',
+      },
+      context: contextObj,
+    };
+  }
+}
+
+/**
  * Context Manager: Orchestrates modular adapters and handles SPA task navigation lifecycle.
  */
 export class ContextManager {
   constructor(options = {}) {
     this.adapters = [
       new LeetCodeAdapter(),
+      new ColabContextAdapter(),
       new GitHubAdapter(),
       new GenericContextAdapter(), // Always last fallback
     ];

@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronRight,
   ExternalLink,
+  GraduationCap,
 } from 'lucide-react';
 import { Session } from '../api';
 
@@ -145,6 +146,19 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({
                 <Play size={14} />
                 <span>Adaptive Loop Demo</span>
               </button>
+
+              <a
+                href="http://localhost:8000/presentation/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sidebar-nav-btn"
+                style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '8px' }}
+                title="Open Academic Project Presentation (Phase-I Review)"
+              >
+                <GraduationCap size={14} style={{ color: '#818cf8' }} />
+                <span>Viva Presentation</span>
+                <ExternalLink size={11} style={{ marginLeft: 'auto', opacity: 0.6 }} />
+              </a>
             </div>
           )}
         </div>

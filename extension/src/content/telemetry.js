@@ -13,6 +13,7 @@ export class TelemetryCollector {
     this._onKeyDown = this._handleKeyDown.bind(this);
     this._onScroll = this._handleScroll.bind(this);
     this._onVisibilityChange = this._handleVisibilityChange.bind(this);
+    this._onPointerMove = this._handlePointerMove.bind(this);
   }
 
   setMonitoring(enabled) {
@@ -40,6 +41,14 @@ export class TelemetryCollector {
     this.hiddenDurationMs = 0;
     this.codeRunCount = 0;
     this.lastErrorOutcome = false;
+
+    // Mouse dynamics accumulators (zero raw coordinates preserved)
+    this.pointerSpeeds = [];
+    this.cursorReversals = 0;
+    this.lastPointerX = null;
+    this.lastPointerY = null;
+    this.lastPointerTime = null;
+    this.lastPointerVector = null;
   }
 
   attach() {
@@ -49,6 +58,7 @@ export class TelemetryCollector {
       document.addEventListener('keydown', this._onKeyDown, { passive: true, capture: true });
     }
     window.addEventListener('scroll', this._onScroll, { passive: true });
+    window.addEventListener('pointermove', this._onPointerMove, { passive: true });
     if (typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', this._onVisibilityChange, { passive: true });
     }
@@ -62,10 +72,43 @@ export class TelemetryCollector {
       document.removeEventListener('keydown', this._onKeyDown, { capture: true });
     }
     window.removeEventListener('scroll', this._onScroll);
+    window.removeEventListener('pointermove', this._onPointerMove);
     if (typeof document !== 'undefined') {
       document.removeEventListener('visibilitychange', this._onVisibilityChange);
     }
     this._isAttached = false;
+  }
+
+  _handlePointerMove(event) {
+    if (!this.isMonitoring) return;
+    const now = Date.now();
+    if (this.lastPointerTime && (now - this.lastPointerTime) < 35) {
+      return; // Sample at ~28Hz max for performance
+    }
+
+    if (this.lastPointerX !== null && this.lastPointerY !== null && this.lastPointerTime !== null) {
+      const dt = (now - this.lastPointerTime) / 1000.0;
+      if (dt > 0 && dt < 1.0) {
+        const dx = event.clientX - this.lastPointerX;
+        const dy = event.clientY - this.lastPointerY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const speed = dist / dt;
+        this.pointerSpeeds.push(speed);
+
+        // Direction reversal detection: Sharp angle changes (>100°) indicate hesitation/uncertainty
+        if (this.lastPointerVector && dist > 12 && this.lastPointerVector.dist > 12) {
+          const dot = (dx * this.lastPointerVector.dx + dy * this.lastPointerVector.dy) / (dist * this.lastPointerVector.dist);
+          if (dot < -0.25) {
+            this.cursorReversals++;
+          }
+        }
+        this.lastPointerVector = { dx, dy, dist };
+      }
+    }
+
+    this.lastPointerX = event.clientX;
+    this.lastPointerY = event.clientY;
+    this.lastPointerTime = now;
   }
 
   recordPause(durationMs) {
@@ -200,6 +243,16 @@ export class TelemetryCollector {
       errorRate = Math.max(errorRate, 0.4);
     }
 
+    // Compute cursor speed aggregates
+    let meanCursorSpeed = 0.0;
+    let stdCursorSpeed = 0.0;
+    if (this.pointerSpeeds.length > 0) {
+      const sumSpeed = this.pointerSpeeds.reduce((a, b) => a + b, 0);
+      meanCursorSpeed = Math.round((sumSpeed / this.pointerSpeeds.length) * 10) / 10;
+      const varianceSpeed = this.pointerSpeeds.reduce((a, b) => a + Math.pow(b - meanCursorSpeed, 2), 0) / this.pointerSpeeds.length;
+      stdCursorSpeed = Math.round(Math.sqrt(varianceSpeed) * 10) / 10;
+    }
+
     const behavior = {
       typing_interval_mean_ms: meanInterval,
       typing_interval_std_ms: stdInterval,
@@ -214,6 +267,9 @@ export class TelemetryCollector {
       visibility_changes: this.visibilityTransitions,
       hidden_time_seconds: Math.round((this.hiddenDurationMs / 1000.0) * 10) / 10,
       longest_pause_seconds: Math.round((this.longestPauseDurationMs / 1000.0) * 10) / 10,
+      cursor_reversals: this.cursorReversals,
+      cursor_speed_mean: meanCursorSpeed,
+      cursor_speed_std: stdCursorSpeed,
     };
 
     const context = activeContext.context || (activeContext.context_schema_version ? activeContext : {
@@ -261,6 +317,9 @@ export class TelemetryCollector {
         scroll_count: this.scrollEvents,
         visibility_changes: this.visibilityTransitions,
         hidden_time_seconds: Math.round((this.hiddenDurationMs / 1000.0) * 10) / 10,
+        cursor_reversals: this.cursorReversals,
+        cursor_speed_mean: meanCursorSpeed,
+        cursor_speed_std: stdCursorSpeed,
         ...activeContext.metadata,
       }
     };

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flowstate Copilot</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="fs-popup-container">
+    <!-- Header -->
+    <header class="fs-popup-header">
+      <div class="fs-brand">
+        <div class="fs-logo-dot"></div>
+        <div>
+          <div class="fs-title">FLOWSTATE</div>
+          <div class="fs-subtitle">Adaptive Cognitive Workspace</div>
+        </div>
+      </div>
+      <div id="fs-connection-badge" class="fs-badge connecting">CONNECTING</div>
+    </header>
+
+    <!-- Active Session Card -->
+    <section class="fs-card">
+      <div class="fs-card-row">
+        <span class="fs-label">ACTIVE SESSION</span>
+        <span id="fs-session-id" class="fs-value-mono">Searching...</span>
+      </div>
+      <div class="fs-card-row">
+        <span class="fs-label">TASK CONTEXT</span>
+        <span id="fs-task-name" class="fs-value">Browser Session</span>
+      </div>
+      <div class="fs-card-row">
+        <span class="fs-label">TELEMETRY STATUS</span>
+        <span id="fs-monitoring-status" class="fs-value" style="color: #10b981;">Active</span>
+      </div>
+    </section>
+
+    <!-- Cognitive State Indicators -->
+    <section class="fs-card">
+      <div class="fs-metric-group">
+        <div class="fs-metric-header">
+          <span>Workload</span>
+          <span id="fs-workload-val" class="fs-metric-num">--</span>
+        </div>
+        <div class="fs-bar-track">
+          <div id="fs-workload-bar" class="fs-bar-fill violet" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="fs-metric-group" style="margin-top: 8px;">
+        <div class="fs-metric-header">
+          <span>Fatigue</span>
+          <span id="fs-fatigue-val" class="fs-metric-num">--</span>
+        </div>
+        <div class="fs-bar-track">
+          <div id="fs-fatigue-bar" class="fs-bar-fill amber" style="width: 0%;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <div class="fs-actions">
+      <button id="fs-btn-toggle-monitor" class="fs-btn secondary">
+        Pause Monitoring
+      </button>
+      <a id="fs-btn-web-app" href="http://localhost:5173" target="_blank" class="fs-btn primary">
+        Open Web Dashboard ↗
+      </a>
+      <a id="fs-btn-deck" href="http://localhost:8000/presentation/" target="_blank" class="fs-btn outline">
+        Academic Viva Deck ↗
+      </a>
+    </div>
+
+    <!-- Footer -->
+    <footer class="fs-popup-footer">
+      <span>Zero Raw Keystrokes</span>
+      <span>•</span>
+      <span>Privacy Preserved</span>
+    </footer>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

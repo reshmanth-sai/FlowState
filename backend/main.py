@@ -56,6 +56,7 @@ app.add_middleware(
         "http://127.0.0.1:8000",
         "https://leetcode.com",
         "https://github.com",
+        "https://colab.research.google.com",
     ],
     allow_origin_regex=r"^(chrome-extension://.*|http://(localhost|127\.0\.0\.1):.*)$",
     allow_credentials=True,
@@ -79,6 +80,11 @@ app.include_router(evaluation_router)
 fixtures_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "extension", "tests", "fixtures")
 if os.path.isdir(fixtures_path):
     app.mount("/fixtures", StaticFiles(directory=fixtures_path, html=True), name="fixtures")
+
+# Mount academic project presentation deck
+presentation_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "presentation")
+if os.path.isdir(presentation_path):
+    app.mount("/presentation", StaticFiles(directory=presentation_path, html=True), name="presentation")
 
 
 from backend.api.websocket_manager import ws_manager

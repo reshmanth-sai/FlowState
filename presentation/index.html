@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flowstate — Academic Project Presentation (Phase-I Review)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-warm: #F7F7F5;
+      --bg-card: #FFFFFF;
+      --bg-accent-soft: #EEF2FF;
+      --text-main: #111111;
+      --text-muted: #555555;
+      --text-light: #828282;
+      --accent: #2457FF;
+      --border: #E0E0D8;
+      --green: #10955A;
+      --purple: #9333EA;
+      --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: #E6E6E2;
+      font-family: var(--font-main);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Top Control Bar */
+    .deck-toolbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 52px;
+      background: rgba(247, 247, 245, 0.96);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      z-index: 1000;
+      font-size: 13.5px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-weight: 700;
+    }
+
+    .toolbar-badge {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      background: var(--bg-accent-soft);
+      color: var(--accent);
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+
+    .toolbar-center {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      color: var(--text-main);
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .nav-btn:hover {
+      background: var(--bg-accent-soft);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .slide-counter {
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      font-weight: 700;
+      padding: 0 10px;
+      color: var(--text-muted);
+    }
+
+    .toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* Presentation Viewport */
+    .deck-viewport {
+      margin-top: 68px;
+      margin-bottom: 48px;
+      width: 100%;
+      max-width: 1280px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .slide-wrapper {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      background: var(--bg-warm);
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08), 0 3px 10px rgba(0, 0, 0, 0.04);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: none;
+    }
+
+    .slide-wrapper.active {
+      display: block;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0.88; transform: scale(0.996); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Slide Internal Layout */
+    .slide-inner {
+      width: 100%;
+      height: 100%;
+      padding: 38px 52px 30px 52px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .slide-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+
+    .section-tag {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-tag::before {
+      content: "";
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background-color: var(--accent);
+      border-radius: 1px;
+    }
+
+    .slide-title {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      line-height: 1.15;
+    }
+
+    .slide-subtitle {
+      font-size: 15px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      font-weight: 500;
+    }
+
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      position: relative;
+    }
+
+    .slide-footer {
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: var(--text-light);
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+
+    .footer-page {
+      color: var(--text-main);
+      font-weight: 800;
+    }
+
+    /* Common Card Components */
+    .tech-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      border-radius: 3px;
+    }
+
+    .tech-card-accent {
+      background: var(--bg-accent-soft);
+      border: 1px solid rgba(36, 87, 255, 0.4);
+    }
+
+    .tech-label {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .body-desc {
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--text-muted);
+    }
+
+    .mono-code {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      background: #EFEFEA;
+      padding: 2px 6px;
+      border-radius: 2px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* SLIDE 1 */
+    .hero-title {
+      font-size: 56px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 1.0;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .hero-subtitle {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+      margin-bottom: 12px;
+    }
+
+    .hero-descriptor {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 20px;
+    }
+
+    .spec-strip {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      padding: 12px 18px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .spec-item-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .spec-item-val {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 3px;
+    }
+
+    .member-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 7px 0;
+      border-bottom: 1px dashed var(--border);
+      font-size: 14.5px;
+    }
+
+    .member-row:last-child {
+      border-bottom: none;
+    }
+
+    .member-name {
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .member-reg {
+      font-family: var(--font-mono);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .image-container {
+      border: 1px solid var(--border);
+      background: #FFFFFF;
+      overflow: hidden;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .image-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* SLIDE 2 */
+    .agenda-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      display: flex;
+      overflow: hidden;
+      height: 126px;
+      border-radius: 3px;
+    }
+
+    .agenda-num {
+      width: 86px;
+      background: var(--bg-accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--accent);
+      border-right: 1px solid rgba(36, 87, 255, 0.2);
+    }
+
+    .agenda-info {
+      flex: 1;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .agenda-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: -0.01em;
+      margin-bottom: 5px;
+    }
+
+    /* SLIDE 4 TABLE */
+    .lit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+    }
+
+    .lit-table th {
+      background: var(--text-main);
+      color: #FFFFFF;
+      padding: 11px 14px;
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .lit-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.45;
+    }
+
+    .lit-table tr:nth-child(even) td {
+      background: #FAFAF8;
+    }
+
+    .lit-table .paper-title {
+      font-weight: 800;
+      color: var(--text-main);
+      font-size: 14px;
+    }
+
+    .lit-table .limitation-tag {
+      color: var(--purple);
+      font-weight: 700;
+    }
+
+    .lit-table .relevance-tag {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    /* SLIDE 6 OBJECTIVES */
+    .obj-item {
+      display: flex;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      margin-bottom: 12px;
+      height: 82px;
+      border-radius: 3px;
+    }
+
+    .obj-badge {
+      width: 105px;
+      background: var(--bg-accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      color: var(--accent);
+      font-size: 16px;
+      border-right: 1px solid rgba(36, 87, 255, 0.2);
+    }
+
+    .obj-content {
+      flex: 1;
+      padding: 12px 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .obj-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 3px;
+    }
+
+    /* SLIDE 7 ARCHITECTURE */
+    .arch-stages {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .arch-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      border-radius: 3px;
+      font-size: 12.5px;
+    }
+
+    .arch-card.highlight {
+      background: var(--bg-accent-soft);
+      border-color: var(--accent);
+    }
+
+    .arch-card-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+
+    .arch-card-title {
+      font-size: 13.5px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    /* SLIDE 8 RESULTS */
+    .metric-hero {
+      font-family: var(--font-mono);
+      font-size: 52px;
+      font-weight: 900;
+      color: var(--green);
+      line-height: 1.0;
+      margin: 6px 0;
+    }
+
+    .check-list {
+      list-style: none;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .check-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .icon-pass { color: var(--green); font-weight: 800; font-family: var(--font-mono); }
+    .icon-progress { color: #D97706; font-weight: 800; font-family: var(--font-mono); }
+    .icon-plan { color: var(--text-light); font-weight: 800; font-family: var(--font-mono); }
+
+    /* Print styling */
+    @media print {
+      body { background: transparent; }
+      .deck-toolbar { display: none !important; }
+      .deck-viewport { margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
+      .slide-wrapper {
+        display: block !important;
+        page-break-after: always;
+        break-after: page;
+        box-shadow: none !important;
+        border: none !important;
+        width: 100vw !important;
+        height: 100vh !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Toolbar -->
+  <div class="deck-toolbar">
+    <div class="toolbar-left">
+      <span>FLOWSTATE</span>
+      <span class="toolbar-badge">ACADEMIC VIVA // PHASE-I</span>
+      <span style="color: var(--text-light); font-size: 13px;">| Supervisor: Dr. Sudheer Kumar</span>
+    </div>
+    <div class="toolbar-center">
+      <button class="nav-btn" onclick="prevSlide()" title="Previous slide (Left Arrow)">◄ Prev</button>
+      <span class="slide-counter" id="slideIndicator">01 / 08</span>
+      <button class="nav-btn" onclick="nextSlide()" title="Next slide (Right Arrow / Space)">Next ►</button>
+    </div>
+    <div class="toolbar-right">
+      <button class="nav-btn" onclick="window.print()" title="Print or Save as PDF">🖨 Export PDF</button>
+      <button class="nav-btn" onclick="toggleFullscreen()" title="Fullscreen mode">⛶ Fullscreen</button>
+    </div>
+  </div>
+
+  <div class="deck-viewport">
+
+    <!-- ===================================================================
+         SLIDE 1: TITLE SLIDE (WITH 3D WEARABLE VISUAL COMPONENT)
+         =================================================================== -->
+    <div class="slide-wrapper active" id="slide-1">
+      <div class="slide-inner">
+        <div class="slide-header" style="border-bottom: 2px solid var(--accent); padding-bottom: 8px;">
+          <div class="section-tag">// ACADEMIC PROJECT VIVA • PHASE-I EVALUATION • SCOPE</div>
+        </div>
+
+        <div class="slide-body">
+          <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; align-items: center; margin-bottom: 16px;">
+            <div>
+              <div class="hero-title">FLOWSTATE</div>
+              <div class="hero-subtitle">A Multimodal, Context-Aware System for Personalized Adaptive Web Interfaces</div>
+              <div class="hero-descriptor">
+                Closed-loop cognitive workload estimation and non-intrusive biocybernetic adaptation using consumer wearables and browser interaction telemetry.
+              </div>
+
+              <div class="spec-strip" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 0;">
+                <div>
+                  <div class="spec-item-title">Physical Boundary</div>
+                  <div class="spec-item-val">Consumer BLE Smartwatch (PPG)</div>
+                </div>
+                <div>
+                  <div class="spec-item-title">Temporal Analysis</div>
+                  <div class="spec-item-val">30s Sliding Windows (Zero Leakage)</div>
+                </div>
+                <div>
+                  <div class="spec-item-title">Core Constructs</div>
+                  <div class="spec-item-val">Workload • Fatigue • Engagement</div>
+                </div>
+                <div>
+                  <div class="spec-item-title">Scientific Principles</div>
+                  <div class="spec-item-val">7-Step Signal Provenance Trace</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3D Wearable Visual Component -->
+            <div class="image-container" style="height: 270px;">
+              <img src="assets/wearable_device_3d.jpg" alt="3D Smartwatch and UI Interface" />
+            </div>
+          </div>
+
+          <!-- Bottom Team & Guide Cards -->
+          <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px;">
+            <div class="tech-card">
+              <div class="tech-label">Student Research Team</div>
+              <div class="member-row">
+                <span class="member-name">Naidu Reshmanth Sai</span>
+                <span class="member-reg">25BCE1112</span>
+              </div>
+              <div class="member-row">
+                <span class="member-name">Sri Priyan D</span>
+                <span class="member-reg">25BCE1074</span>
+              </div>
+              <div class="member-row">
+                <span class="member-name">Vinayak V</span>
+                <span class="member-reg">25BCExxxx</span>
+              </div>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-label">Faculty Project Supervision</div>
+              <div style="font-size: 19px; font-weight: 800; color: var(--text-main); margin-top: 2px;">Dr. Sudheer Kumar</div>
+              <div class="body-desc" style="margin-top: 4px; font-size: 13.5px;">
+                Faculty Project Supervisor<br>
+                School of Computer Science &amp; Engineering (SCOPE)<br>
+                Phase-I Capstone Review • 2026
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div>FLOWSTATE RESEARCH PLATFORM   |   VIT CHENNAI   |   FASTAPI &bull; REACT VITE</div>
+          <div class="footer-page">SLIDE 01 / 08</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         SLIDE 2: AGENDA
+         =================================================================== -->
+    <div class="slide-wrapper" id="slide-2">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="section-tag">02 // PRESENTATION ROADMAP</div>
+          <div class="slide-title">Agenda &amp; Research Progression</div>
+          <div class="slide-subtitle">Structured trajectory from theoretical cognitive foundations to a functioning prototype</div>
+        </div>
+
+        <div class="slide-body">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+            
+            <div class="agenda-card">
+              <div class="agenda-num">01</div>
+              <div class="agenda-info">
+                <div class="agenda-title">Introduction &amp; Problem Motivation</div>
+                <div class="body-desc">Cognitive overload in digital workspaces, human-computer friction, and limitations of static interfaces.</div>
+              </div>
+            </div>
+
+            <div class="agenda-card">
+              <div class="agenda-num">02</div>
+              <div class="agenda-info">
+                <div class="agenda-title">Literature Survey &amp; Theoretical Baseline</div>
+                <div class="body-desc">Critical analysis of 5 foundational studies: WESAD affective computing, biocybernetics, and Cognitive Load Theory.</div>
+              </div>
+            </div>
+
+            <div class="agenda-card">
+              <div class="agenda-num">03</div>
+              <div class="agenda-info">
+                <div class="agenda-title">Challenges &amp; Technical Research Gap</div>
+                <div class="body-desc">Hardware invasiveness, inter-subject baseline drift, wrist sensor noise, and biocybernetic UI oscillation.</div>
+              </div>
+            </div>
+
+            <div class="agenda-card">
+              <div class="agenda-num">04</div>
+              <div class="agenda-info">
+                <div class="agenda-title">Project Objectives &amp; Scope Boundaries</div>
+                <div class="body-desc">Five verifiable engineering milestones: dual-stream ingestion, baseline deltas, tri-state ML, explainability, adaptation.</div>
+              </div>
+            </div>
+
+            <div class="agenda-card">
+              <div class="agenda-num">05</div>
+              <div class="agenda-info">
+                <div class="agenda-title">System Architecture &amp; Proposed Methodology</div>
+                <div class="body-desc">Full 6-tier pipeline: canonical ingestion → quality gating → 30s window sync → multimodal fusion → adaptation.</div>
+              </div>
+            </div>
+
+            <div class="agenda-card">
+              <div class="agenda-num">06</div>
+              <div class="agenda-info">
+                <div class="agenda-title">Results &amp; Initial Implementation (38% Done)</div>
+                <div class="body-desc">Verified vertical slice: 42 passing automated tests, 5-phase deterministic scenario, and interactive cognitive task.</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div>RESEARCH TRAJECTORY   |   PHASE-I EVALUATION</div>
+          <div class="footer-page">SLIDE 02 / 08</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         SLIDE 3: INTRODUCTION (WITH 3D COGNITIVE LOOP VISUAL)
+         =================================================================== -->
+    <div class="slide-wrapper" id="slide-3">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="section-tag">03 // PROBLEM CONTEXT &amp; MOTIVATION</div>
+          <div class="slide-title">Cognitive Friction in Modern Digital Workspaces</div>
+          <div class="slide-subtitle">Bridging the sensory disconnect between static web interfaces and human mental capacity</div>
+        </div>
+
+        <div class="slide-body">
+          <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px;">
+            
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              <div class="tech-card">
+                <div class="tech-label">// 01 THE PROBLEM: UNNOTICED COGNITIVE OVERLOAD</div>
+                <div class="body-desc">
+                  • Mental exhaustion accumulates silently, increasing task error rates by up to <strong>40%</strong>.<br>
+                  • The human brain lacks an explicit sensory gauge to detect mental fatigue before failure.
+                </div>
+              </div>
+
+              <div class="tech-card">
+                <div class="tech-label">// 02 EXISTING LIMITATIONS: INVASIVE OR OBLIVIOUS TOOLS</div>
+                <div class="body-desc">
+                  • Traditional Web UIs are static—treating exhausted users identically to fresh users.<br>
+                  • Prior physiological systems mandate clinical EEG caps or chest straps unusable for desk work.
+                </div>
+              </div>
+
+              <div class="tech-card">
+                <div class="tech-label">// 03 OUR SOLUTION: CLOSED-LOOP BIOCYBERNETICS</div>
+                <div class="body-desc">
+                  • Fuses consumer smartwatch PPG signals with natural browser interaction telemetry.<br>
+                  • Calculates individualized resting baseline deltas (<span class="mono-code">ΔHR, RMSSD</span>) to drive subtle UI adaptations.
+                </div>
+              </div>
+            </div>
+
+            <!-- 3D Cognitive Loop Visual Component -->
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="image-container" style="height: 280px;">
+                <img src="assets/cognitive_loop_3d.jpg" alt="3D Cognitive Feedback Loop" />
+              </div>
+
+              <div class="tech-card tech-card-accent" style="padding: 12px 18px;">
+                <div class="tech-label" style="margin-bottom: 2px;">THE BIOCYBERNETIC ADAPTATION LOOP (HCI)</div>
+                <div style="font-family: var(--font-mono); font-size: 12px; font-weight: 700; color: var(--text-main);">
+                  [Operator] ──► [30s Sync &amp; Deltas] ──► [Tri-State ML] ──► [Bounded Adaptive UI] ──► [Relief]
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div>DOMAIN: COGNITIVE ERGONOMICS   |   HUMAN-COMPUTER INTERACTION</div>
+          <div class="footer-page">SLIDE 03 / 08</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         SLIDE 4: LITERATURE SURVEY
+         =================================================================== -->
+    <div class="slide-wrapper" id="slide-4">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="section-tag">04 // THEORETICAL FOUNDATIONS</div>
+          <div class="slide-title">Academic Literature Survey</div>
+          <div class="slide-subtitle">Synthesis of five foundational studies establishing the physiological computing baseline and research gap</div>
+        </div>
+
+        <div class="slide-body">
+          <table class="lit-table">
+            <thead>
+              <tr>
+                <th style="width: 45px;">#</th>
+                <th style="width: 200px;">Paper &amp; Authors</th>
+                <th style="width: 60px;">Year</th>
+                <th style="width: 380px;">Methodology &amp; Key Findings</th>
+                <th>Limitation &amp; Relevance to Flowstate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-family: var(--font-mono); font-weight: 800; color: var(--accent); text-align: center;">01</td>
+                <td><span class="paper-title">Schmidt et al.</span><br><span style="font-size: 11px; color: var(--text-muted);">ACM IMWUT / UbiComp</span></td>
+                <td style="font-family: var(--font-mono); text-align: center; font-weight: 700;">2018</td>
+                <td>WESAD dataset: Wrist PPG + Chest ECG under laboratory stress induction (15 subjects).</td>
+                <td><span class="limitation-tag">Limitation:</span> Lab-only protocol; lacks real-time web UI integration.<br><span class="relevance-tag">Relevance:</span> Primary external benchmark dataset reference.</td>
+              </tr>
+              <tr>
+                <td style="font-family: var(--font-mono); font-weight: 800; color: var(--accent); text-align: center;">02</td>
+                <td><span class="paper-title">Fairclough, S. H.</span><br><span style="font-size: 11px; color: var(--text-muted);">Int. J. Human-Comp. Stud.</span></td>
+                <td style="font-family: var(--font-mono); text-align: center; font-weight: 700;">2009</td>
+                <td>Theoretical biocybernetic closed-loop control architecture for physiological adaptation.</td>
+                <td><span class="limitation-tag">Limitation:</span> Purely theoretical; omits sensor noise &amp; UI thrashing.<br><span class="relevance-tag">Relevance:</span> Mathematical foundation for closed-loop hysteresis control.</td>
+              </tr>
+              <tr>
+                <td style="font-family: var(--font-mono); font-weight: 800; color: var(--accent); text-align: center;">03</td>
+                <td><span class="paper-title">Charles &amp; Nixon</span><br><span style="font-size: 11px; color: var(--text-muted);">Theor. Issues Ergon. Sci.</span></td>
+                <td style="font-family: var(--font-mono); text-align: center; font-weight: 700;">2019</td>
+                <td>Meta-survey of cardiac measures (HRV, PPG) for mental workload estimation.</td>
+                <td><span class="limitation-tag">Limitation:</span> Universal static thresholds fail due to baseline diversity.<br><span class="relevance-tag">Relevance:</span> Justifies our 30s sliding-window baseline delta (<span class="mono-code">ΔHR</span>).</td>
+              </tr>
+              <tr>
+                <td style="font-family: var(--font-mono); font-weight: 800; color: var(--accent); text-align: center;">04</td>
+                <td><span class="paper-title">Kosch et al.</span><br><span style="font-size: 11px; color: var(--text-muted);">ACM Computing Surveys</span></td>
+                <td style="font-family: var(--font-mono); text-align: center; font-weight: 700;">2023</td>
+                <td>Systematic analysis of consumer smartwatch biosensors in everyday desktop HCI tasks.</td>
+                <td><span class="limitation-tag">Limitation:</span> Wrist motion artifacts and Bluetooth packet drops.<br><span class="relevance-tag">Relevance:</span> Motivates our dual-stream wearable + task telemetry fusion.</td>
+              </tr>
+              <tr>
+                <td style="font-family: var(--font-mono); font-weight: 800; color: var(--accent); text-align: center;">05</td>
+                <td><span class="paper-title">Sweller / Paas et al.</span><br><span style="font-size: 11px; color: var(--text-muted);">Cognitive Science</span></td>
+                <td style="font-family: var(--font-mono); text-align: center; font-weight: 700;">2003</td>
+                <td>Cognitive Load Theory: Intrinsic, extraneous, and germane cognitive load dimensions.</td>
+                <td><span class="limitation-tag">Limitation:</span> Pure behavioral telemetry cannot detect hidden internal strain.<br><span class="relevance-tag">Relevance:</span> Establishes target tri-state estimation (Workload, Fatigue, Engagement).</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="tech-card tech-card-accent" style="margin-top: 12px; padding: 10px 18px;">
+            <div style="font-family: var(--font-mono); font-size: 12.5px; font-weight: 700; color: var(--accent);">
+              [CRITICAL SYNTHESIS] Prior work establishes physiological sensitivity, but leaves a critical gap in non-invasive, noise-tolerant consumer deployment with backward explainability.
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div>PEER-REVIEWED CORPUS   |   ACM / IEEE / HUMAN FACTORS</div>
+          <div class="footer-page">SLIDE 04 / 08</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         SLIDE 5: CHALLENGES & RESEARCH GAP (WITH 3D GAP BRIDGE VISUAL)
+         =================================================================== -->
+    <div class="slide-wrapper" id="slide-5">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="section-tag">05 // CRITICAL ANALYSIS</div>
+          <div class="slide-title">Challenges &amp; Formulated Research Gap</div>
+          <div class="slide-subtitle">Overcoming four core bottlenecks that prevent laboratory physiological computing from reaching consumer web systems</div>
+        </div>
+
+        <div class="slide-body">
+          <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 24px;">
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <div class="tech-card">
+                <div class="tech-label">// 01 HARDWARE INVASIVENESS</div>
+                <div class="body-desc">
+                  <strong>Barrier:</strong> Clinical EEG caps or chest straps are unusable for regular desktop computing.<br>
+                  <strong>Solution:</strong> Strict consumer boundary (standard browser + BLE smartwatch PPG).
+                </div>
+              </div>
+
+              <div class="tech-card">
+                <div class="tech-label">// 02 INTER-SUBJECT VARIABILITY</div>
+                <div class="body-desc">
+                  <strong>Barrier:</strong> Resting HR varies from 50 to 90 bpm; static thresholds trigger false alarms.<br>
+                  <strong>Solution:</strong> Continuous baseline calibration computing resting deltas (<span class="mono-code">ΔHR = HR - HR_rest</span>).
+                </div>
+              </div>
+
+              <div class="tech-card">
+                <div class="tech-label">// 03 SENSOR NOISE &amp; DROPOUTS</div>
+                <div class="body-desc">
+                  <strong>Barrier:</strong> Wrist motion causes packet drops; zero-filling missing streams corrupts models.<br>
+                  <strong>Solution:</strong> Explicit <span class="mono-code">availability_mask</span> routing with tri-branch fallback (Wearable, Task, Fused).
+                </div>
+              </div>
+
+              <div class="tech-card">
+                <div class="tech-label">// 04 UI OSCILLATION &amp; BLACK-BOX AI</div>
+                <div class="body-desc">
+                  <strong>Barrier:</strong> Black-box AI causes biocybernetic thrashing without evidence attribution.<br>
+                  <strong>Solution:</strong> 7-step Follow-the-Signal audit trace + bounded hysteresis with cooldowns.
+                </div>
+              </div>
+            </div>
+
+            <!-- 3D Research Gap Bridge Visual Component -->
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="image-container" style="height: 230px;">
+                <img src="assets/research_gap_3d.jpg" alt="3D Research Gap Bridge" />
+              </div>
+
+              <div class="tech-card tech-card-accent" style="padding: 16px 20px;">
+                <div class="tech-label" style="margin-bottom: 4px;">THE CORE FORMULATED RESEARCH GAP</div>
+                <div style="font-size: 14.5px; font-weight: 800; line-height: 1.45; color: var(--text-main);">
+                  "The absence of an explainable, noise-tolerant biocybernetic framework that reliably estimates multidimensional cognitive states from consumer-grade wearables and desktop telemetry without requiring clinical invasiveness, zero-filled signal corruption, or disruptive interface oscillation."
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div>RESEARCH GAP FORMULATION   |   NOISE TOLERANCE &amp; EXPLAINABILITY</div>
+          <div class="footer-page">SLIDE 05 / 08</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         SLIDE 6: PROJECT OBJECTIVES
+         =================================================================== -->
+    <div class="slide-wrapper" id="slide-6">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="section-tag">06 // SCOPE &amp; DELIVERABLES</div>
+          <div class="slide-title">Project Objectives &amp; Engineering Scope</div>
+          <div class="slide-subtitle">Five precise, measurable, and implementation-oriented engineering milestones</div>
+        </div>
+
+        <div class="slide-body">
+          <div class="obj-item">
+            <div class="obj-badge">OBJ 01</div>
+            <div class="obj-content">
+              <div class="obj-title">ENGINEER DUAL-STREAM INGESTION &amp; SYNCHRONIZATION PIPELINE</div>
+              <div class="body-desc">Ingest consumer BLE smartwatch PPG (Bluetooth GATT Service 0x180D) and browser task interaction telemetry, synchronizing data into non-leaking 30-second sliding windows with timestamp verification and gap handling.</div>
+            </div>
+          </div>
+
+          <div class="obj-item">
+            <div class="obj-badge">OBJ 02</div>
+            <div class="obj-content">
+              <div class="obj-title">IMPLEMENT INDIVIDUALIZED BASELINE CALIBRATION &amp; DELTA EXTRACTION</div>
+              <div class="body-desc">Compute normalized physiological deltas (<span class="mono-code">ΔHR = HR_curr - HR_rest</span>) against personalized resting baselines to neutralize inter-subject variance, supported by an explicit missing-modality mask (<span class="mono-code">availability_mask</span>).</div>
+            </div>
+          </div>
+
+          <div class="obj-item">
+            <div class="obj-badge">OBJ 03</div>
+            <div class="obj-content">
+              <div class="obj-title">DEVELOP TRI-STATE MULTIMODAL INFERENCE &amp; CONFIDENCE GATING</div>
+              <div class="body-desc">Implement baseline classification models estimating three independent cognitive constructs—Workload, Fatigue, and Engagement—accompanied by quality gating (PASS, DEGRADED, INSUFFICIENT) rather than ungrounded black-box predictions.</div>
+            </div>
+          </div>
+
+          <div class="obj-item">
+            <div class="obj-badge">OBJ 04</div>
+            <div class="obj-content">
+              <div class="obj-title">ARCHITECT 7-STAGE "FOLLOW-THE-SIGNAL" EXPLANATION PIPELINE</div>
+              <div class="body-desc">Establish a transparent, non-causal evidence attribution audit trail allowing users to trace any UI intervention backwards through 7 verification stages to the exact raw sensor events that triggered it.</div>
+            </div>
+          </div>
+
+          <div class="obj-item">
+            <div class="obj-badge">OBJ 05</div>
+            <div class="obj-content">
+              <div class="obj-title">DEPLOY CLOSED-LOOP ADAPTIVE WEB EXPERIENCE WITH HYSTERESIS</div>
+              <div class="body-desc">Deliver bounded, non-disruptive web UI interventions (micro-break prompts, task difficulty modulation, notification throttling) governed by hysteresis thresholds and cooldown timers to eliminate interface thrashing.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div>DELIVERABLE CONTRACT   |   ENGINEERING SPECIFICATION M01–M20</div>
+          <div class="footer-page">SLIDE 06 / 08</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         SLIDE 7: PROPOSED METHODOLOGY & SYSTEM ARCHITECTURE (WITH 3D PIPELINE)
+         =================================================================== -->
+    <div class="slide-wrapper" id="slide-7">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="section-tag">07 // SYSTEM ARCHITECTURE &amp; METHODOLOGY</div>
+          <div class="slide-title">End-to-End Multimodal Pipeline Architecture</div>
+          <div class="slide-subtitle">Dual-stream ingestion, 30s window synchronization, tri-state inference, and closed-loop adaptation</div>
+        </div>
+
+        <div class="slide-body">
+          <!-- 3D Systems Architecture Visual Component -->
+          <div class="image-container" style="height: 215px; margin-bottom: 12px;">
+            <img src="assets/architecture_3d.jpg" alt="3D 6-Stage System Pipeline" />
+          </div>
+
+          <!-- 6-Stage Engineering Cards with Large Text -->
+          <div class="arch-stages">
+            <div class="arch-card">
+              <div class="arch-card-num">STAGE 01</div>
+              <div class="arch-card-title">Dual Inputs</div>
+              <div class="body-desc" style="font-size: 12.5px;">• BLE Smartwatch (PPG)<br>• Browser Task Telemetry</div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-card-num">STAGE 02</div>
+              <div class="arch-card-title">Quality Gating</div>
+              <div class="body-desc" style="font-size: 12.5px;">• Plausibility (40–200 bpm)<br>• <span class="mono-code">availability_mask</span></div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-card-num">STAGE 03</div>
+              <div class="arch-card-title">30s Windows</div>
+              <div class="body-desc" style="font-size: 12.5px;">• 30s Windows (5s step)<br>• Zero future-data leakage</div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-card-num">STAGE 04</div>
+              <div class="arch-card-title">Personalization</div>
+              <div class="body-desc" style="font-size: 12.5px;">• Resting Delta (<span class="mono-code">ΔHR</span>)<br>• Tri-Branch Fusion</div>
+            </div>
+
+            <div class="arch-card highlight">
+              <div class="arch-card-num">STAGE 05</div>
+              <div class="arch-card-title">Tri-State ML</div>
+              <div class="body-desc" style="font-size: 12.5px;">• Confidence Gated<br>• Workload, Fatigue, Flow</div>
+            </div>
+
+            <div class="arch-card">
+              <div class="arch-card-num">STAGE 06</div>
+              <div class="arch-card-title">Adaptive UI</div>
+              <div class="body-desc" style="font-size: 12.5px;">• 7-Step Evidence Trace<br>• Bounded UI Interventions</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div>SYSTEM ARCHITECTURE   |   REST APIS + WEBSOCKETS + REACT VITE</div>
+          <div class="footer-page">SLIDE 07 / 08</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================================================================
+         SLIDE 8: RESULTS / INITIAL IMPLEMENTATION (WITH REAL PROTOTYPE UI)
+         =================================================================== -->
+    <div class="slide-wrapper" id="slide-8">
+      <div class="slide-inner">
+        <div class="slide-header">
+          <div class="section-tag">08 // PHASE-I IMPLEMENTATION STATUS</div>
+          <div class="slide-title">Initial Implementation &amp; Preliminary Verification</div>
+          <div class="slide-subtitle">Demonstrating verified 38% project milestone completion across core architecture and functional modules</div>
+        </div>
+
+        <div class="slide-body">
+          <div style="display: grid; grid-template-columns: 1fr 1.35fr; gap: 24px;">
+            
+            <!-- Left: Milestone Checklist -->
+            <div class="tech-card">
+              <div class="tech-label">Milestone Completion</div>
+              <div class="metric-hero">38%</div>
+              <div style="font-size: 13.5px; font-weight: 800; color: var(--green); margin-bottom: 12px;">
+                Phase-I Target: 20% [SURPASSED]
+              </div>
+              <ul class="check-list">
+                <li><span class="icon-pass">✓</span> <span>M01–M20 Architecture Spec (100%)</span></li>
+                <li><span class="icon-pass">✓</span> <span>Ingestion &amp; Quality Service (100%)</span></li>
+                <li><span class="icon-pass">✓</span> <span>30s Window Sync &amp; Features (100%)</span></li>
+                <li><span class="icon-pass">✓</span> <span>42/42 Automated Tests (100%)</span></li>
+                <li><span class="icon-pass">✓</span> <span>Deterministic 5-Phase Simulator (100%)</span></li>
+                <li><span class="icon-pass">✓</span> <span>Interactive Arithmetic Task (100%)</span></li>
+                <li><span class="icon-progress">→</span> <span>Physical BLE GATT Pairing (40%)</span></li>
+                <li><span class="icon-plan">○</span> <span>WESAD Benchmark Mapping (Planned)</span></li>
+              </ul>
+            </div>
+
+            <!-- Right: Real Working Prototype UI Screenshot -->
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="image-container" style="height: 290px;">
+                <img src="assets/live_dashboard_ui.png" alt="FlowState Real Working Dashboard Prototype" />
+              </div>
+
+              <div class="tech-card tech-card-accent" style="padding: 10px 16px;">
+                <div class="tech-label" style="margin-bottom: 2px;">VERIFIED PROTOTYPE CAPABILITIES</div>
+                <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">
+                  • Live real-time cognitive workload estimation from interactive task telemetry.<br>
+                  • 42 automated tests passing in 0.55s (<span class="mono-code">pytest tests</span>) with zero fabricated metrics.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="slide-footer">
+          <div>PROJECT VIVA STATUS: 38% MILESTONE VERIFIED   |   42/42 TESTS PASSING (100% SUITE)</div>
+          <div class="footer-page">SLIDE 08 / 08</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 8;
+
+    function showSlide(n) {
+      if (n < 1) n = 1;
+      if (n > totalSlides) n = totalSlides;
+      currentSlide = n;
+
+      for (let i = 1; i <= totalSlides; i++) {
+        const el = document.getElementById(`slide-${i}`);
+        if (el) {
+          el.classList.toggle('active', i === currentSlide);
+        }
+      }
+
+      document.getElementById('slideIndicator').innerText = `${String(currentSlide).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
+    }
+
+    function nextSlide() {
+      showSlide(currentSlide + 1);
+    }
+
+    function prevSlide() {
+      showSlide(currentSlide - 1);
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(err => {
+          console.warn('Fullscreen error', err);
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        prevSlide();
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      } else if (e.key >= '1' && e.key <= '8') {
+        showSlide(parseInt(e.key));
+      }
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialSlide = parseInt(urlParams.get('slide')) || 1;
+    showSlide(initialSlide);
+  </script>
+</body>
+</html>

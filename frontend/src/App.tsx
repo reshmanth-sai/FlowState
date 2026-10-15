@@ -443,6 +443,7 @@ export const App: React.FC = () => {
             <LiveSessionView
               activeSession={activeSession}
               latestInference={latestInference}
+              inferences={inferences}
               windows={windows}
               latestDecision={latestDecision}
               durationMinutes={durationMinutes}

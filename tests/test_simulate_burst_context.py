@@ -9,15 +9,16 @@ Verifies:
 
 import asyncio
 import json
+import os
 import subprocess
 import time
 import urllib.request
 import websockets
 
-BACKEND_URL = "http://127.0.0.1:8000"
-FRONTEND_URL = "http://127.0.0.1:5173"
-CHROME_PATH = r"C:\Users\Sri Priyan D\AppData\Local\Google\Chrome\Application\chrome.exe"
-EXTENSION_PATH = r"d:\PROJECTS\IDP\FlowState\extension"
+from tests.chrome_env import CHROME_EXE as CHROME_PATH, EXTENSION_DIR as EXTENSION_PATH
+
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5173")
 
 
 def post_json(url, data):

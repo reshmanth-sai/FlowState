@@ -160,3 +160,101 @@ async def test_extension_structured_context_workflow():
         assert ev["value"]["context"]["activity"]["last_outcome"] == "WRONG_ANSWER"
         assert ev["value"]["behavior"]["typing_interval_mean_ms"] == 240.0
 
+
+@pytest.mark.asyncio
+async def test_extension_colab_and_mouse_telemetry():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Create a session for Colab research workflow
+        res = await client.post(
+            "/sessions",
+            json={
+                "participant_key": "colab_researcher",
+                "task_id": "transformer_experiment",
+                "mode": "SIMULATED",
+                "metadata": {"origin": "chrome_extension", "platform": "colab"},
+            },
+        )
+        assert res.status_code == 200
+        session_id = res.json()["id"]
+
+        start_res = await client.post(f"/sessions/{session_id}/start")
+        assert start_res.status_code == 200
+
+        # 2. Submit Colab batch with mouse kinematics and zero-knowledge behavioral aggregates
+        colab_payload = {
+            "platform": "colab",
+            "page_title": "NLP_Transformer_Finetune.ipynb",
+            "difficulty": 2.0,
+            "typing_interval_mean_ms": 310.0,
+            "typing_interval_std_ms": 72.0,
+            "backspace_count": 5,
+            "delete_count": 0,
+            "pause_count": 2,
+            "pause_duration_seconds": 12.0,
+            "active_time_seconds": 30.0,
+            "code_run_count": 3,
+            "error_rate": 0.0,
+            "behavior": {
+                "typing_interval_mean_ms": 310.0,
+                "typing_interval_std_ms": 72.0,
+                "backspace_count": 5,
+                "delete_count": 0,
+                "pause_count": 2,
+                "pause_duration_seconds": 12.0,
+                "active_time_seconds": 30.0,
+                "code_run_count": 3,
+                "error_rate": 0.0,
+                "cursor_reversals": 6,
+                "cursor_speed_mean": 295.4,
+                "cursor_speed_std": 82.1,
+            },
+            "context": {
+                "context_schema_version": "1.0.0",
+                "platform": "colab",
+                "task": {
+                    "type": "notebook_computation",
+                    "difficulty": "Interactive",
+                    "difficulty_scalar": 2.0,
+                    "title": "NLP_Transformer_Finetune.ipynb",
+                    "language": "Python",
+                },
+                "activity": {
+                    "active_time_seconds": 30.0,
+                    "submission_count": 0,
+                    "code_run_count": 3,
+                    "failure_count": 0,
+                    "last_outcome": "EXECUTED",
+                },
+            },
+            "metadata": {
+                "adapter": "ColabContextAdapter",
+                "cursor_reversals": 6,
+                "cursor_speed_mean": 295.4,
+                "cursor_speed_std": 82.1,
+            },
+        }
+
+        telemetry_res = await client.post(
+            f"/tasks/{session_id}/browser-telemetry",
+            json=colab_payload,
+        )
+        assert telemetry_res.status_code == 200
+        data = telemetry_res.json()
+        assert data["status"] == "INGESTED"
+
+        # 3. Verify event storage and mouse kinematics persistence
+        events_res = await client.get(f"/data/events/{session_id}?signal_type=task_event")
+        assert events_res.status_code == 200
+        events = events_res.json()
+        matching = [e for e in events if e["id"] == data["event_id"]]
+        assert len(matching) == 1
+        ev = matching[0]
+
+        assert ev["source_type"] == "COMPUTER_BEHAVIOR"
+        assert ev["value"]["platform"] == "colab"
+        assert ev["value"]["context"]["task"]["title"] == "NLP_Transformer_Finetune.ipynb"
+        assert ev["value"]["behavior"]["cursor_reversals"] == 6
+        assert ev["value"]["behavior"]["cursor_speed_mean"] == 295.4
+        assert ev["value"]["behavior"]["code_run_count"] == 3
+

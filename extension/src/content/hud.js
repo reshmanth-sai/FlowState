@@ -8,10 +8,14 @@ export class FlowstateHud {
   constructor(options = {}) {
     this.onInterventionResponse = options.onInterventionResponse || (() => {});
     this.onToggleSession = options.onToggleSession || (() => {});
+    this.onToggleZenFocus = options.onToggleZenFocus || (() => {});
     this.isExpanded = false;
     this.isMonitoring = false;
     this.isPaused = false;
     this.isGathering = false;
+    this.isZenActive = false;
+    this.activeTab = 'monitor';
+    this.latestHarvestedTelemetry = null;
     this.currentInference = null;
     this.activeIntervention = null;
     this.isBreakActive = false;
@@ -20,6 +24,7 @@ export class FlowstateHud {
     this.sessionId = null;
     this.currentContext = null;
     this.explicitState = null;
+    this.corner = (typeof localStorage !== 'undefined' && localStorage.getItem('flowstate_hud_corner')) || 'bottom-right';
 
     this._mount();
   }
@@ -35,10 +40,47 @@ export class FlowstateHud {
 
     this.host = document.createElement('div');
     this.host.id = 'flowstate-hud-host';
+    this._applyCornerPosition();
     document.body.appendChild(this.host);
 
     this.shadow = this.host.attachShadow({ mode: 'open' });
     this._injectStyles();
+    this._render();
+  }
+
+  _applyCornerPosition() {
+    if (!this.host) return;
+    const positions = {
+      'bottom-right': 'position: fixed; bottom: 18px; right: 18px; top: auto; left: auto; z-index: 2147483647;',
+      'bottom-left': 'position: fixed; bottom: 18px; left: 18px; top: auto; right: auto; z-index: 2147483647;',
+      'top-right': 'position: fixed; top: 18px; right: 18px; bottom: auto; left: auto; z-index: 2147483647;',
+      'top-left': 'position: fixed; top: 18px; left: 18px; bottom: auto; right: auto; z-index: 2147483647;',
+    };
+    this.host.style.cssText = positions[this.corner] || positions['bottom-right'];
+  }
+
+  cycleCorner() {
+    const order = ['bottom-right', 'bottom-left', 'top-left', 'top-right'];
+    const nextIdx = (order.indexOf(this.corner) + 1) % order.length;
+    this.corner = order[nextIdx];
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('flowstate_hud_corner', this.corner);
+      }
+    } catch (e) {}
+    this._applyCornerPosition();
+    this._render();
+  }
+
+  setHarvestedTelemetry(batch) {
+    this.latestHarvestedTelemetry = batch;
+    if (this.isExpanded && this.activeTab === 'audit') {
+      this._render();
+    }
+  }
+
+  setZenActive(isActive) {
+    this.isZenActive = Boolean(isActive);
     this._render();
   }
 
@@ -297,6 +339,108 @@ export class FlowstateHud {
         padding: 10px;
         text-align: center;
       }
+
+      /* Tab Navigation */
+      .fs-tab-bar {
+        display: flex;
+        gap: 3px;
+        background: rgba(0, 0, 0, 0.25);
+        padding: 2px;
+        border-radius: 6px;
+      }
+      .fs-tab-btn {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        font-size: 9.5px;
+        font-weight: 600;
+        padding: 4px 6px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .fs-tab-btn:hover {
+        color: #f1f5f9;
+      }
+      .fs-tab-btn.active {
+        background: rgba(99, 102, 241, 0.25);
+        color: #a5b4fc;
+        font-weight: 700;
+      }
+
+      /* Audit Tab */
+      .fs-audit-container {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+      }
+      .fs-privacy-banner {
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        border-radius: 6px;
+        padding: 6px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .fs-privacy-badge {
+        font-size: 9px;
+        color: #34d399;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .fs-json-view {
+        background: #090d16;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 6px;
+        padding: 7px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 8.5px;
+        color: #38bdf8;
+        max-height: 145px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+
+      /* Zen Tab & Box Breathing */
+      .fs-zen-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 2px 0;
+      }
+      .fs-breath-box {
+        background: rgba(6, 182, 212, 0.12);
+        border: 1px solid rgba(6, 182, 212, 0.35);
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+      }
+      .fs-breath-pulse-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(6, 182, 212, 0.25);
+        border: 2px solid #06b6d4;
+        margin: 6px auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        font-weight: 800;
+        color: #ffffff;
+        animation: fs-breath-scale 16s infinite ease-in-out;
+      }
+      @keyframes fs-breath-scale {
+        0%, 100% { transform: scale(0.85); box-shadow: 0 0 5px rgba(6, 182, 212, 0.4); }
+        25% { transform: scale(1.2); box-shadow: 0 0 15px rgba(6, 182, 212, 0.8); }
+        50% { transform: scale(1.2); box-shadow: 0 0 15px rgba(6, 182, 212, 0.8); }
+        75% { transform: scale(0.85); box-shadow: 0 0 5px rgba(6, 182, 212, 0.4); }
+      }
     `;
     this.shadow.appendChild(style);
   }
@@ -463,13 +607,53 @@ export class FlowstateHud {
         `;
       }
 
-      container.innerHTML = `
-        <div class="fs-hud-card">
-          <div class="fs-card-header">
-            <span class="fs-card-title">⚡ Flowstate Live Monitor</span>
-            <button class="fs-btn-icon" id="fs-collapse-btn">✕</button>
-          </div>
+      let tabBody = '';
+      if (this.activeTab === 'audit') {
+        const auditData = this.latestHarvestedTelemetry
+          ? (this.latestHarvestedTelemetry.behavior || this.latestHarvestedTelemetry)
+          : { status: "Awaiting next 15s harvest window..." };
 
+        tabBody = `
+          <div class="fs-audit-container">
+            <div class="fs-privacy-banner">
+              <div class="fs-privacy-badge">✓ 0 Keystrokes Captured (Zero Keylogging)</div>
+              <div class="fs-privacy-badge">✓ 0 Code Lines / Text Scraped</div>
+              <div class="fs-privacy-badge">✓ Mathematical Kinematics Only</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 9px; color: #94a3b8; font-weight: 700;">
+              <span>15s TELEMETRY DISPATCH</span>
+              <span style="color: #10b981;">LOCAL AGGREGATE</span>
+            </div>
+            <pre class="fs-json-view">${JSON.stringify(auditData, null, 2)}</pre>
+            <div style="font-size: 8.5px; color: #64748b; text-align: center;">
+              Continuous provenance SHA-256 bound to Session ${this.sessionId ? this.sessionId.slice(0, 8) : 'None'}
+            </div>
+          </div>
+        `;
+      } else if (this.activeTab === 'zen') {
+        tabBody = `
+          <div class="fs-zen-container">
+            <div style="font-size: 11px; font-weight: 700; color: #f8fafc;">Ambient Zen Clutter Reducer</div>
+            <div style="font-size: 9.5px; color: #94a3b8; line-height: 1.4;">
+              Softens distracting peripheral sidebars and noisy discussion threads on coding platforms.
+            </div>
+            <button class="fs-btn ${this.isZenActive ? 'secondary' : 'primary'}" id="fs-toggle-zen-btn" style="padding: 7px; margin-top: 2px;">
+              ${this.isZenActive ? '✕ Disable Zen Filter (Restore Original)' : '✦ Enable Zen Focus Filter'}
+            </button>
+
+            <div class="fs-breath-box" style="margin-top: 6px;">
+              <div style="font-size: 10px; font-weight: 700; color: #67e8f9;">4-4-4-4 BOX BREATHING PACER</div>
+              <div class="fs-breath-pulse-circle">${this.isBreakActive ? `${this.breakCountdown}s` : 'PACE'}</div>
+              <div style="font-size: 9px; color: #cbd5e1; margin-bottom: 6px;">Inhale 4s • Hold 4s • Exhale 4s • Hold 4s</div>
+              <button class="fs-btn primary" id="fs-start-breath-btn" style="width: 100%;">
+                ${this.isBreakActive ? `Pause Running (${this.breakCountdown}s)` : 'Start 30s Guided Reset'}
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        // Monitor tab
+        tabBody = `
           ${contextHtml}
           ${alertHtml}
 
@@ -509,6 +693,26 @@ export class FlowstateHud {
             <span>Session: ${this.sessionId ? this.sessionId.slice(0, 10) : 'None'}</span>
             <span class="fs-gate-badge ${gate}">GATE: ${gate}</span>
           </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="fs-hud-card">
+          <div class="fs-card-header">
+            <span class="fs-card-title">⚡ Flowstate Copilot</span>
+            <div style="display: flex; gap: 4px; align-items: center;">
+              <button class="fs-btn-icon" id="fs-corner-btn" title="Cycle Corner: ${this.corner}">⤢</button>
+              <button class="fs-btn-icon" id="fs-collapse-btn" title="Collapse">✕</button>
+            </div>
+          </div>
+
+          <div class="fs-tab-bar">
+            <button class="fs-tab-btn ${this.activeTab === 'monitor' ? 'active' : ''}" id="fs-tab-monitor">Monitor</button>
+            <button class="fs-tab-btn ${this.activeTab === 'audit' ? 'active' : ''}" id="fs-tab-audit">Audit Payload</button>
+            <button class="fs-tab-btn ${this.activeTab === 'zen' ? 'active' : ''}" id="fs-tab-zen">Zen Focus</button>
+          </div>
+
+          ${tabBody}
         </div>
       `;
 
@@ -517,6 +721,45 @@ export class FlowstateHud {
         this.isExpanded = false;
         this._render();
       };
+
+      const cornerBtn = container.querySelector('#fs-corner-btn');
+      if (cornerBtn) {
+        cornerBtn.onclick = () => this.cycleCorner();
+      }
+
+      const tabMon = container.querySelector('#fs-tab-monitor');
+      if (tabMon) {
+        tabMon.onclick = () => { this.activeTab = 'monitor'; this._render(); };
+      }
+      const tabAud = container.querySelector('#fs-tab-audit');
+      if (tabAud) {
+        tabAud.onclick = () => { this.activeTab = 'audit'; this._render(); };
+      }
+      const tabZen = container.querySelector('#fs-tab-zen');
+      if (tabZen) {
+        tabZen.onclick = () => { this.activeTab = 'zen'; this._render(); };
+      }
+
+      const zenToggle = container.querySelector('#fs-toggle-zen-btn');
+      if (zenToggle) {
+        zenToggle.onclick = () => {
+          this.isZenActive = !this.isZenActive;
+          this.onToggleZenFocus(this.isZenActive);
+          this._render();
+        };
+      }
+
+      const breathBtn = container.querySelector('#fs-start-breath-btn');
+      if (breathBtn) {
+        breathBtn.onclick = () => {
+          if (this.isBreakActive) {
+            this.isBreakActive = false;
+            this._render();
+          } else {
+            this._startBreakCountdown(30);
+          }
+        };
+      }
 
       const acceptBtn = container.querySelector('#fs-accept-btn');
       if (acceptBtn) {

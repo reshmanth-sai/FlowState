@@ -205,24 +205,85 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Periodic heartbeat discovery to detect when a session is created/started in the web app
+const OFFLINE_BUFFER_KEY = 'flowstate_offline_telemetry_buffer';
+const MAX_BUFFER_SIZE = 25;
+
+async function enqueueOfflineBatch(sessionId, payload) {
+  try {
+    const data = await chrome.storage.local.get([OFFLINE_BUFFER_KEY]);
+    const buffer = data[OFFLINE_BUFFER_KEY] || [];
+    buffer.push({
+      sessionId,
+      payload,
+      bufferedAt: new Date().toISOString(),
+    });
+    if (buffer.length > MAX_BUFFER_SIZE) {
+      buffer.shift();
+    }
+    await chrome.storage.local.set({ [OFFLINE_BUFFER_KEY]: buffer });
+    console.log('[Flowstate Worker] Buffered telemetry offline. Queue length:', buffer.length);
+  } catch (e) {
+    console.warn('[Flowstate Worker] Failed to buffer offline batch:', e);
+  }
+}
+
+async function flushOfflineBuffer() {
+  try {
+    const data = await chrome.storage.local.get([OFFLINE_BUFFER_KEY]);
+    const buffer = data[OFFLINE_BUFFER_KEY] || [];
+    if (buffer.length === 0) return;
+
+    console.log('[Flowstate Worker] Flushing', buffer.length, 'offline telemetry batches...');
+    const remaining = [];
+    for (let i = 0; i < buffer.length; i++) {
+      const item = buffer[i];
+      const targetSession = item.sessionId || activeSessionId;
+      if (!targetSession) {
+        remaining.push(item);
+        continue;
+      }
+      try {
+        await apiClient.submitBrowserTelemetry(targetSession, item.payload);
+      } catch (err) {
+        remaining.push(item);
+      }
+    }
+    await chrome.storage.local.set({ [OFFLINE_BUFFER_KEY]: remaining });
+    if (remaining.length === 0) {
+      console.log('[Flowstate Worker] Offline telemetry queue completely flushed and synced.');
+    }
+  } catch (e) {
+    console.warn('[Flowstate Worker] Error flushing offline buffer:', e);
+  }
+}
+
+// Periodic heartbeat discovery and buffer flush
 setInterval(() => {
-  ensureSession(false).catch(() => {});
+  ensureSession(false)
+    .then((sid) => {
+      if (sid) {
+        flushOfflineBuffer().catch(() => {});
+      }
+    })
+    .catch(() => {});
 }, 5000);
 
 async function handleTelemetryBatch(payload) {
   // Only route to user-initiated running sessions; do not auto-create from background browsing
   const sessionId = await ensureSession(false);
   if (!sessionId) {
+    await enqueueOfflineBatch(null, payload);
     return {
       status: 'BUFFERED_OFFLINE',
-      message: 'No active Flowstate session or backend offline',
+      message: 'No active session running; telemetry preserved in local offline queue',
     };
   }
 
   try {
     const result = await apiClient.submitBrowserTelemetry(sessionId, payload);
     lastBackendError = null;
+    // Attempt opportunistic flush of previous buffered items on success
+    flushOfflineBuffer().catch(() => {});
     return {
       status: 'SUCCESS',
       sessionId: sessionId,
@@ -232,9 +293,10 @@ async function handleTelemetryBatch(payload) {
     };
   } catch (err) {
     lastBackendError = err.message;
+    await enqueueOfflineBatch(sessionId, payload);
     return {
-      status: 'DISPATCH_ERROR',
-      message: err.message,
+      status: 'BUFFERED_OFFLINE',
+      message: 'Network error; telemetry buffered for automatic replay',
     };
   }
 }

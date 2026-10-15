@@ -23,6 +23,7 @@
         "https://*.leetcode.com/*",
         "https://github.com/*",
         "https://*.github.com/*",
+        "https://colab.research.google.com/*",
         "http://localhost/*",
         "http://127.0.0.1/*",
         "http://localhost:*/*",
@@ -34,6 +35,10 @@
       "run_at": "document_idle"
     }
   ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Flowstate Copilot"
+  },
   "web_accessible_resources": [
     {
       "resources": [
@@ -41,13 +46,15 @@
         "src/*/*",
         "src/content/*",
         "src/shared/*",
-        "src/styles/*"
+        "src/styles/*",
+        "src/popup/*"
       ],
       "matches": [
         "https://leetcode.com/*",
         "https://*.leetcode.com/*",
         "https://github.com/*",
         "https://*.github.com/*",
+        "https://colab.research.google.com/*",
         "http://localhost/*",
         "http://127.0.0.1/*",
         "http://localhost:*/*",

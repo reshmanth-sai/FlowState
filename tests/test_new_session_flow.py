@@ -22,12 +22,11 @@ import time
 import httpx
 import websockets
 
-CHROME_EXE = r"C:\Users\Sri Priyan D\AppData\Local\Google\Chrome\Application\chrome.exe"
-EXTENSION_DIR = r"d:\PROJECTS\IDP\FlowState\extension"
-SCRATCH_DIR = r"C:\Users\Sri Priyan D\.gemini\antigravity\brain\8d642632-6641-4c44-a4d1-30c406014881\scratch"
+from tests.chrome_env import CHROME_EXE, EXTENSION_DIR, SCRATCH_DIR
+
 PROFILE_DIR = os.path.join(SCRATCH_DIR, "chrome_new_session_profile")
-BACKEND_URL = "http://127.0.0.1:8000"
-FRONTEND_URL = "http://127.0.0.1:5173"
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://127.0.0.1:5173")
 
 
 def get_cdp_value(res):
